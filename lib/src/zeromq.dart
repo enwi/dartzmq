@@ -30,19 +30,19 @@ DynamicLibrary _dlOpenPlatformSpecific(String name, {String? path}) {
 }
 
 /// High-level wrapper around the ØMQ C++ api.
-class ZeroMQ {
-  late final ZeroMQBindings _bindings;
+class ZContext {
+  late final ZMQBindings _bindings;
   late final ZMQContext _context;
   late final ZMQPoller _poller;
 
   bool _isActive = true;
   bool _pollingMicrotaskScheduled = false;
 
-  final Map<ZMQSocket, ZmqSocket> _createdSockets = {};
-  final List<ZmqSocket> _listening = [];
+  final Map<ZMQSocket, ZSocket> _createdSockets = {};
+  final List<ZSocket> _listening = [];
   Completer? _stopCompleter;
 
-  ZeroMQ() {
+  ZContext() {
     _initBindings();
     _context = _bindings.zmq_ctx_new();
     _poller = _bindings.zmq_poller_new();
@@ -51,7 +51,7 @@ class ZeroMQ {
 
   void _initBindings() {
     // try {
-    _bindings = ZeroMQBindings(_dlOpenPlatformSpecific('libzmq-v142-mt-4_3_5'));
+    _bindings = ZMQBindings(_dlOpenPlatformSpecific('libzmq-v142-mt-4_3_5'));
     // } catch (err) {
     //   log('Error loading bindings: ' + err.toString());
     // }
@@ -127,25 +127,25 @@ class ZeroMQ {
     _pollingMicrotaskScheduled = false;
   }
 
-  ZmqSocket createSocket(SocketMode mode) {
+  ZSocket createSocket(SocketMode mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
-    final apiSocket = ZmqSocket(socket, this);
+    final apiSocket = ZSocket(socket, this);
     _createdSockets[socket] = apiSocket;
     return apiSocket;
   }
 
-  void _listen(ZmqSocket socket) {
+  void _listen(ZSocket socket) {
     _bindings.zmq_poller_add(_poller, socket._handle, nullptr, ZMQ_POLLIN);
     _listening.add(socket);
     _startPolling();
   }
 
-  void _stopListening(ZmqSocket socket) {
+  void _stopListening(ZSocket socket) {
     _bindings.zmq_poller_remove(_poller, socket._handle);
     _listening.remove(socket);
   }
 
-  void _handleSocketClosed(ZmqSocket socket) {
+  void _handleSocketClosed(ZSocket socket) {
     if (_isActive) {
       _createdSockets.remove(socket._handle);
     }
@@ -355,9 +355,9 @@ class ZMessage implements Queue<ZFrame> {
   Iterable<T> whereType<T>() => _frames.whereType<T>();
 }
 
-class ZmqSocket {
+class ZSocket {
   final ZMQSocket _handle;
-  final ZeroMQ _zmq;
+  final ZContext _zmq;
 
   bool _closed = false;
 
@@ -366,7 +366,7 @@ class ZmqSocket {
   Stream<Uint8List> get payloads =>
       messages.expand((element) => element._frames.map((e) => e.payload));
 
-  ZmqSocket(this._handle, this._zmq) {
+  ZSocket(this._handle, this._zmq) {
     _controller = StreamController(onListen: () {
       _zmq._listen(this);
     }, onCancel: () {
@@ -423,16 +423,37 @@ class ZmqSocket {
     malloc.free(ptr);
   }
 
-  void setCurvePublicKey(String key) {
+  void setCurvePublicKey(final String key) {
     setOption(ZMQ_CURVE_PUBLICKEY, key);
   }
 
-  void setCurveSecretKey(String key) {
+  void setCurveSecretKey(final String key) {
     setOption(ZMQ_CURVE_SECRETKEY, key);
   }
 
-  void setCurveServerKey(String key) {
+  void setCurveServerKey(final String key) {
     setOption(ZMQ_CURVE_SERVERKEY, key);
+  }
+
+  /// The [ZMQ_SUBSCRIBE] option shall establish a new message filter on a [ZMQ_SUB] socket.
+  /// Newly created [ZMQ_SUB] sockets shall filter out all incoming messages, therefore you
+  /// should call this option to establish an initial message filter.
+  ///
+  /// An empty [topic] of length zero shall subscribe to all incoming messages. A
+  /// non-empty [topic] shall subscribe to all messages beginning with the specified
+  /// prefix. Mutiple filters may be attached to a single [ZMQ_SUB] socket, in which case a
+  /// message shall be accepted if it matches at least one filter.
+  void subscribe(final String topic) {
+    setOption(ZMQ_SUBSCRIBE, topic);
+  }
+
+  /// The [ZMQ_UNSUBSCRIBE] option shall remove an existing message filter on a [ZMQ_SUB]
+  /// socket. The filter specified must match an existing filter previously established with
+  /// the [ZMQ_SUBSCRIBE] option. If the socket has several instances of the same filter
+  /// attached the [ZMQ_UNSUBSCRIBE] option shall remove only one instance, leaving the rest in
+  /// place and functional.
+  void unsubscribe(final String topic) {
+    setOption(ZMQ_UNSUBSCRIBE, topic);
   }
 
   void _checkNotClosed() {

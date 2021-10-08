@@ -1,3 +1,13 @@
+## 1.0.0-dev.3
+
+### Add example, subscriptions for `sub` sockets and code cleanup
+- Add minimal working example
+- Rename `ZmqSocket` to `ZSocket`
+- Rename `ZeroMQ` to `ZContext`
+- Rename `ZeroMQBindings` tor `ZMQBindings`
+- Add `subscribe(String topic)` and `unsubscribe(String topic)` to manage subscriptions of `sub` sockets
+
+
 ## 1.0.0-dev.2
 
 ### Add support for multipart messages

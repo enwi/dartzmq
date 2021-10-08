@@ -109,7 +109,7 @@ class ZMQPollerEvent extends Struct {
   external int events;
 }
 
-class ZeroMQBindings {
+class ZMQBindings {
   final DynamicLibrary library;
 
   late final zmq_errno_dart zmq_errno;
@@ -138,7 +138,7 @@ class ZeroMQBindings {
 
   late final zmq_setsockopt_dart zmq_setsockopt;
 
-  ZeroMQBindings(this.library) {
+  ZMQBindings(this.library) {
     zmq_errno =
         library.lookupFunction<zmq_errno_native, zmq_errno_dart>('zmq_errno');
     zmq_bind =

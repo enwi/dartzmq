@@ -3,12 +3,14 @@ A simple dart zeromq implementation/wrapper around the libzmq C++ library
 
 ## Features
 Currently supported:
-- Creating sockets (pair,  pub,  sub,  req,  rep,  dealer,  router,  pull,  push,  xPub,  xSub,  stream)
+- Creating sockets (`pair`,  `pub`,  `sub`,  `req`,  `rep`,  `dealer`,  `router`,  `pull`,  `push`,  `xPub`,  `xSub`,  `stream`)
 - Sending messages (of type `List<int>`)
 - Bind (`bind(String address)`)
 - Connect (`connect(String address)`)
 - Curve (`setCurvePublicKey(String key)`, `setCurveSecretKey(String key)` and `setCurveServerKey(String key)`)
 - Socket options (`setOption(int option, String value)`)
+- Receiving multipart messages (`ZMessage`)
+- Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
 
 ## Getting started
 Currently only windows is officially supported as a platform, but it depends on the used shared library of `libzmq`.
@@ -23,11 +25,34 @@ Once you installed this plugin place the shared library of `libzmq` next to your
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
-
+Create context
 ```dart
-const like = 'sample';
+final ZContext context = ZContext();
+```
+
+Create socket
+```dart
+final ZSocket socket = context.createSocket(SocketMode.req);
+```
+
+Connect socket
+```dart
+socket.connect("tcp://localhost:5566");
+```
+
+Send message
+```dart
+socket.send([1, 2, 3, 4, 5]);
+```
+
+Destroy socket
+```dart
+socket.close();
+```
+
+Destroy context
+```dart
+context.stop();
 ```
 
 ## Additional information
