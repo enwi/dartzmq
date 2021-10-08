@@ -21,6 +21,7 @@ const int ZMQ_POLLOUT = 2;
 const int ZMQ_POLLERR = 4;
 const int ZMQ_POLLPRI = 8;
 
+const int ZMQ_DONTWAIT = 1;
 const int ZMQ_SNDMORE = 2;
 
 const int ZMQ_CURVE_PUBLICKEY = 48;

@@ -1,3 +1,12 @@
+## 1.0.0-dev.2
+
+### Add support for multipart messages
+- Rename `Message` to `ZFrame`
+- Add `ZMessage` as a queue of `ZFrame`'s
+- Receive messages as `ZMessage` instead of `Message`(`ZFrame`)
+- Reduce minimum SDK version to `2.13.0`
+
+
 ## 1.0.0-dev.1
 
 ### Add crude implementation of libzmq

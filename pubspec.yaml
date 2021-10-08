@@ -1,10 +1,10 @@
 name: dartzmq
-description: A wrapper for libzmq
-version: 1.0.0-dev.1
+description: A simple dart zeromq implementation/wrapper around the libzmq C++ library
+version: 1.0.0-dev.2
 homepage: https://github.com/enwi/dartzmq
 
 environment:
-  sdk: ">=2.15.0-116.0.dev <3.0.0"
+  sdk: ">=2.13.0 <3.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
