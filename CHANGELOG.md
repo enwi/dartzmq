@@ -1,3 +1,17 @@
+## 1.0.0-dev.4
+
+### Fix heap corruption due to wrong usage of `malloc.allocate`
+- Use periodic timer to poll sockets every second
+- Poll all messages on socket instead of one for each event to not loose messages
+- Reuse zeromq message pointer
+- Improve return code handling
+- Rename `_isActive` of `ZContext` to `_shutdown`
+- Rename `_handle` and `_zmq` of `ZSocket` to `_socket` and `_context`
+- Add stream for `ZFrames` to `ZSocket`
+- Always show error code in `ZeroMQException`
+- Fix pubspec of example
+
+
 ## 1.0.0-dev.3
 
 ### Add example, subscriptions for `sub` sockets and code cleanup

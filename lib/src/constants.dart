@@ -91,3 +91,5 @@ const int ENOTCONN = _errorBase + 15;
 const int ETIMEDOUT = _errorBase + 16;
 const int EHOSTUNREACH = _errorBase + 17;
 const int ENETRESET = _errorBase + 18;
+
+const int EAGAIN = 11;

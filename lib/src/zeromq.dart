@@ -35,8 +35,8 @@ class ZContext {
   late final ZMQContext _context;
   late final ZMQPoller _poller;
 
-  bool _isActive = true;
-  bool _pollingMicrotaskScheduled = false;
+  bool _shutdown = false;
+  Timer? _timer;
 
   final Map<ZMQSocket, ZSocket> _createdSockets = {};
   final List<ZSocket> _listening = [];
@@ -58,7 +58,7 @@ class ZContext {
   }
 
   Future stop() {
-    _isActive = false;
+    _shutdown = true;
     _stopCompleter = Completer();
     return _stopCompleter!.future;
   }
@@ -68,63 +68,71 @@ class ZContext {
   }
 
   void _startPolling() {
-    if (!_pollingMicrotaskScheduled && _listening.isNotEmpty) {
-      _pollingMicrotaskScheduled = true;
-      scheduleMicrotask(_poll);
+    if (_timer == null && _listening.isNotEmpty) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _poll());
     }
   }
 
   void _poll() {
-    final listeners = _listening.length;
-    final events = malloc.allocate<ZMQPollerEvent>(listeners);
-    final readEvents =
-        _bindings.zmq_poller_wait_all(_poller, events, listeners, 0);
+    final socketCount = _listening.length;
 
-    final msg = _allocateMessage();
-    for (var i = 0; i < readEvents; i++) {
-      final event = events[i];
-      final socket = _createdSockets[event.socket]!;
+    final pollerEvents =
+        malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
+    final availableEventCount =
+        _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
 
-      // Receive multiple message parts
-      final zMessage = ZMessage();
-      while (true) {
-        var rc = _bindings.zmq_msg_init(msg);
-        _checkSuccess(rc);
+    if (availableEventCount > 0) {
+      final msg = _allocateMessage();
+      var rc = _bindings.zmq_msg_init(msg); // rc == 0
+      _checkReturnCode(rc);
 
-        rc = _bindings.zmq_msg_recv(msg, socket._handle, 0);
-        _checkSuccess(rc, positiveIsSuccess: true);
+      for (var eventIdx = 0; eventIdx < availableEventCount; ++eventIdx) {
+        final pollerEvent = pollerEvents[eventIdx];
+        final socket = _createdSockets[pollerEvent.socket]!;
 
-        final size = _bindings.zmq_msg_size(msg);
-        final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
+        // Receive multiple message parts
+        ZMessage zMessage = ZMessage();
+        bool hasMore = true;
+        while ((rc =
+                _bindings.zmq_msg_recv(msg, socket._socket, ZMQ_DONTWAIT)) >
+            0) {
+          // final size = _bindings.zmq_msg_size(msg);
+          final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
 
-        final copyOfData = Uint8List.fromList(data.asTypedList(size));
-        final hasNext = _bindings.zmq_msg_more(msg) != 0;
+          final copyOfData = Uint8List.fromList(data.asTypedList(rc));
+          hasMore = _bindings.zmq_msg_more(msg) != 0;
 
-        zMessage.add(ZFrame(copyOfData, hasMore: hasNext));
-        if (!hasNext) break;
+          zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
+
+          if (!hasMore) {
+            socket._controller.add(zMessage);
+            zMessage = ZMessage();
+          }
+        }
+
+        _checkReturnCode(rc, ignore: [EAGAIN]);
       }
-      // TODO need to check if zMessage.isEmpty ?
-      socket._controller.add(zMessage);
-      _bindings.zmq_msg_close(msg);
+
+      rc = _bindings.zmq_msg_close(msg); // rc == 0
+      _checkReturnCode(rc);
+
+      malloc.free(msg);
     }
 
-    malloc.free(msg);
-    malloc.free(events);
+    malloc.free(pollerEvents);
 
     // After the polling iteration, re-schedule another one if necessary.
-    if (_isActive) {
-      if (_listening.isNotEmpty) {
-        // NOT using scheduleMicrotask because it blocks up the queue
-        Timer.run(_poll);
-        return;
-      }
-    } else {
+    if (_shutdown) {
       _shutdownInternal();
       _stopCompleter?.complete(null);
+    } else if (socketCount > 0) {
+      return;
     }
+
     // no polling necessary, reset flag so that the next call to _startPolling
     // will bring the mechanism back up.
-    _pollingMicrotaskScheduled = false;
+    _timer?.cancel();
+    _timer = null;
   }
 
   ZSocket createSocket(SocketMode mode) {
@@ -135,19 +143,19 @@ class ZContext {
   }
 
   void _listen(ZSocket socket) {
-    _bindings.zmq_poller_add(_poller, socket._handle, nullptr, ZMQ_POLLIN);
+    _bindings.zmq_poller_add(_poller, socket._socket, nullptr, ZMQ_POLLIN);
     _listening.add(socket);
     _startPolling();
   }
 
   void _stopListening(ZSocket socket) {
-    _bindings.zmq_poller_remove(_poller, socket._handle);
+    _bindings.zmq_poller_remove(_poller, socket._socket);
     _listening.remove(socket);
   }
 
   void _handleSocketClosed(ZSocket socket) {
-    if (_isActive) {
-      _createdSockets.remove(socket._handle);
+    if (!_shutdown) {
+      _createdSockets.remove(socket._socket);
     }
     if (_listening.contains(socket)) {
       _stopListening(socket);
@@ -169,11 +177,15 @@ class ZContext {
     malloc.free(_poller);
   }
 
-  void _checkSuccess(int statusCode, {bool positiveIsSuccess = false}) {
-    final isFailure = positiveIsSuccess ? statusCode < 0 : statusCode != 0;
+  void _checkReturnCode(int code, {List<int> ignore = const []}) {
+    if (code < 0) {
+      _checkErrorCode(ignore: ignore);
+    }
+  }
 
-    if (isFailure) {
-      final errorCode = _bindings.zmq_errno();
+  void _checkErrorCode({List<int> ignore = const []}) {
+    final errorCode = _bindings.zmq_errno();
+    if (!ignore.contains(errorCode)) {
       throw ZeroMQException(errorCode);
     }
   }
@@ -221,7 +233,7 @@ class ZMessage implements Queue<ZFrame> {
   Iterator<ZFrame> get iterator => _frames.iterator;
 
   @override
-  void add(ZFrame value) => _frames.add;
+  void add(ZFrame value) => _frames.add(value);
 
   @override
   void addAll(Iterable<ZFrame> iterable) => _frames.addAll(iterable);
@@ -356,21 +368,21 @@ class ZMessage implements Queue<ZFrame> {
 }
 
 class ZSocket {
-  final ZMQSocket _handle;
-  final ZContext _zmq;
+  final ZMQSocket _socket;
+  final ZContext _context;
 
   bool _closed = false;
 
   late final StreamController<ZMessage> _controller;
   Stream<ZMessage> get messages => _controller.stream;
-  Stream<Uint8List> get payloads =>
-      messages.expand((element) => element._frames.map((e) => e.payload));
+  Stream<ZFrame> get frames => messages.expand((element) => element._frames);
+  Stream<Uint8List> get payloads => frames.map((e) => e.payload);
 
-  ZSocket(this._handle, this._zmq) {
+  ZSocket(this._socket, this._context) {
     _controller = StreamController(onListen: () {
-      _zmq._listen(this);
+      _context._listen(this);
     }, onCancel: () {
-      _zmq._stopListening(this);
+      _context._stopListening(this);
     });
   }
 
@@ -385,32 +397,32 @@ class ZSocket {
     ptr.asTypedList(data.length).setAll(0, data);
 
     final sendParams = more ? ZMQ_SNDMORE : 0;
-    final result =
-        _zmq._bindings.zmq_send(_handle, ptr.cast(), data.length, sendParams);
-    _zmq._checkSuccess(result, positiveIsSuccess: true);
+    final result = _context._bindings
+        .zmq_send(_socket, ptr.cast(), data.length, sendParams);
+    _context._checkReturnCode(result);
     malloc.free(ptr);
   }
 
   void bind(String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _zmq._bindings.zmq_bind(_handle, endpointPointer);
-    _zmq._checkSuccess(result);
+    final result = _context._bindings.zmq_bind(_socket, endpointPointer);
+    _context._checkReturnCode(result);
     malloc.free(endpointPointer);
   }
 
   void connect(String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _zmq._bindings.zmq_connect(_handle, endpointPointer);
-    _zmq._checkSuccess(result);
+    final result = _context._bindings.zmq_connect(_socket, endpointPointer);
+    _context._checkReturnCode(result);
     malloc.free(endpointPointer);
   }
 
   void close() {
     if (!_closed) {
-      _zmq._handleSocketClosed(this);
-      _zmq._bindings.zmq_close(_handle);
+      _context._handleSocketClosed(this);
+      _context._bindings.zmq_close(_socket);
       _controller.close();
       _closed = true;
     }
@@ -418,8 +430,8 @@ class ZSocket {
 
   void setOption(int option, String value) {
     final ptr = value.toNativeUtf8();
-    _zmq._bindings
-        .zmq_setsockopt(_handle, option, ptr.cast<Uint8>(), ptr.length);
+    _context._bindings
+        .zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
   }
 
@@ -474,7 +486,7 @@ class ZeroMQException implements Exception {
     if (msg == null) {
       return 'ZeroMQException($errorCode)';
     } else {
-      return 'ZeroMQException: $msg';
+      return 'ZeroMQException($errorCode): $msg';
     }
   }
 

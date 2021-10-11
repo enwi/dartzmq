@@ -45,6 +45,11 @@ typedef zmq_poller_remove_native = Int32 Function(
 typedef zmq_poller_remove_dart = int Function(
     ZMQPoller poller, ZMQSocket socket);
 
+typedef zmq_poll_native = Int32 Function(
+    Pointer<ZMQPollItem> items, Int32 nitems, Int64 timeout);
+typedef zmq_poll_dart = int Function(
+    Pointer<ZMQPollItem> items, int nitems, int timeout);
+
 typedef zmq_poller_wait_all_native = Int32 Function(ZMQPoller poller,
     Pointer<ZMQPollerEvent> events, Int32 count, Int64 timeout);
 typedef zmq_poller_wait_all_dart = int Function(
@@ -109,6 +114,17 @@ class ZMQPollerEvent extends Struct {
   external int events;
 }
 
+class ZMQPollItem extends Struct {
+  external ZMQSocket socket;
+  @Int32()
+  external int fd;
+
+  @Int16()
+  external int events;
+  @Int16()
+  external int revents;
+}
+
 class ZMQBindings {
   final DynamicLibrary library;
 
@@ -127,6 +143,7 @@ class ZMQBindings {
   late final zmq_poller_destroy_dart zmq_poller_destroy;
   late final zmq_poller_add_dart zmq_poller_add;
   late final zmq_poller_remove_dart zmq_poller_remove;
+  late final zmq_poll_dart zmq_poll;
   late final zmq_poller_wait_all_dart zmq_poller_wait_all;
 
   late final zmq_msg_init_dart zmq_msg_init;
@@ -167,6 +184,8 @@ class ZMQBindings {
             'zmq_poller_add');
     zmq_poller_remove = library.lookupFunction<zmq_poller_remove_native,
         zmq_poller_remove_dart>('zmq_poller_remove');
+    zmq_poll =
+        library.lookupFunction<zmq_poll_native, zmq_poll_dart>('zmq_poll');
     zmq_poller_wait_all = library.lookupFunction<zmq_poller_wait_all_native,
         zmq_poller_wait_all_dart>('zmq_poller_wait_all');
 
