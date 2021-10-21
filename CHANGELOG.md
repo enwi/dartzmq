@@ -1,3 +1,16 @@
+## 1.0.0-dev.5
+
+### Fix destroying poller and loading shared library
+- Rename `SocketMode` to `SocketType`
+- Add some steps on how to use dartzmq on Android
+- Address warnings in bindings.dart
+- Fix destroying poller (use **poller instead of *poller)
+- Add more class documentation
+- Fix loading shared library for orher platforms
+- Extend error messages
+- Add more socket options
+
+
 ## 1.0.0-dev.4
 
 ### Fix heap corruption due to wrong usage of `malloc.allocate`

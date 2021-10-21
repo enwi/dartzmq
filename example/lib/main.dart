@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _socket = _context.createSocket(SocketMode.req);
+    _socket = _context.createSocket(SocketType.req);
     _socket.connect("tcp://localhost:5566");
     // _socket.connect("tcp://192.168.2.18:5566");
     super.initState();

@@ -18,10 +18,14 @@ I have tested this on windows, which works.
 Other platforms have not been tested, but should work. 
 If you have tested this plugin on another platform and got it to work, please share your findings and create an issue to add it to the list.
 
-Once you installed this plugin place the shared library of `libzmq` next to your executable (for example place `libzmq-v142-mt-4_3_5.dll` in the folder `yourproject/build/windows/runner/Debug/`)
+### Windows
+Place a shared library of `libzmq` next to your executable (for example place `libzmq-v142-mt-4_3_5.dll` in the folder `yourproject/build/windows/runner/Debug/`)
 
 > Note that in order for this plugin to work you will need to either get a shared library of `libzmq` or compile it yourself. 
 > Especially when using this on windows you need to make sure that `libzmq` is compiled using `MSVC-2019` if you are using `clang` it will not work ([more info](https://flutterforum.co/t/windows-desktop-flutter-ffi-and-loading-the-clang-library/3842))
+
+### Android
+Android has not been fully tested, but essentially you can follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android), which will get you a `libzmq.so`. Which you need to include in your project following [these steps](https://github.com/truongsinh/flutter-ffi-samples/blob/master/packages/sqlite/docs/android.md#update-gradle-script)
 
 ## Usage
 
