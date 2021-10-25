@@ -32,6 +32,9 @@ class ZMQPollItem extends Struct {
   external int revents;
 }
 
+typedef ZmqHasNative = Int32 Function(Pointer<Utf8> capability);
+typedef ZmqHasDart = int Function(Pointer<Utf8> capability);
+
 typedef ZmqBindNative = Int32 Function(
     ZMQSocket socket, Pointer<Utf8> endpoint);
 typedef ZmqBindDart = int Function(ZMQSocket socket, Pointer<Utf8> endpoint);
@@ -107,13 +110,15 @@ typedef ZmqSendNative = Int32 Function(
 typedef ZmqSendDart = int Function(
     ZMQSocket socket, Pointer<Void> buffer, int size, int flags);
 
-typedef ZmqsetsockoptNative = Void Function(
+typedef ZmqsetsockoptNative = Int32 Function(
     ZMQSocket socket, Int32 option, Pointer<Uint8> optval, IntPtr optvallen);
-typedef ZmqSetsockoptDart = void Function(
+typedef ZmqSetsockoptDart = int Function(
     ZMQSocket socket, int option, Pointer<Uint8> optval, int optvallen);
 
 class ZMQBindings {
   final DynamicLibrary library;
+
+  late final ZmqHasDart zmq_has;
 
   late final ZmqErrnoDart zmq_errno;
 
@@ -143,6 +148,7 @@ class ZMQBindings {
   late final ZmqSetsockoptDart zmq_setsockopt;
 
   ZMQBindings(this.library) {
+    zmq_has = library.lookupFunction<ZmqHasNative, ZmqHasDart>('zmq_has');
     zmq_errno =
         library.lookupFunction<ZmqErrnoNative, ZmqErrnoDart>('zmq_errno');
     zmq_bind = library.lookupFunction<ZmqBindNative, ZmqBindDart>('zmq_bind');

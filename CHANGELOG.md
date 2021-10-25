@@ -1,3 +1,13 @@
+## 1.0.0-dev.6
+
+### Free pointers before throwing a ZeroMQException
+- Free pointers before throwing a ZeroMQException
+- Add return code to `zmq_setsockopt` function
+- Add return code check to `ZSocket.setOption` function
+- Add `zmq_has` function for checking supported capabilities
+- Add helper functions for `zmq_has`
+
+
 ## 1.0.0-dev.5
 
 ### Fix destroying poller and loading shared library

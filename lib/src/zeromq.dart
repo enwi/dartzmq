@@ -70,7 +70,9 @@ class ZContext {
   }
 
   void _initBindings() {
-    final loaded = _loadBinding('zmq') || _loadBinding('libzmq-v142-mt-4_3_5');
+    final loaded = _loadBinding('zmq') ||
+        _loadBinding('libzmq') ||
+        _loadBinding('libzmq-v142-mt-4_3_5');
     if (!loaded) {
       throw Exception('Could not load any zeromq library');
     }
@@ -167,6 +169,79 @@ class ZContext {
     _timer?.cancel();
     _timer = null;
     _stopCompleter?.complete(null);
+  }
+
+  /// Check whether a specified [capability] is available in the library.
+  /// This allows bindings and applications to probe a library directly,
+  /// for transport and security options.
+  ///
+  /// Capabilities shall be lowercase strings. The following capabilities are defined:
+  /// * `ipc` - the library supports the ipc:// protocol
+  /// * `pgm` - the library supports the pgm:// protocol
+  /// * `tipc` - the library supports the tipc:// protocol
+  /// * `norm` - the library supports the norm:// protocol
+  /// * `curve` - the library supports the CURVE security mechanism
+  /// * `gssapi` - the library supports the GSSAPI security mechanism
+  /// * `draft` - the library is built with the draft api
+  ///
+  /// You can also use one of the direct functions [hasIPC], [hasPGM],
+  /// [hasTIPC], [hasNORM], [hasCURVE], [hasGSSAPI] and [hasDRAFT] instead.
+  ///
+  /// Returns true if supported, false if not
+  bool hasCapability(final String capability) {
+    final ptr = capability.toNativeUtf8();
+    final result = _bindings.zmq_has(ptr);
+    malloc.free(ptr);
+    return result == 1;
+  }
+
+  /// Check if the library supports the ipc:// protocol
+  ///
+  /// Returns true if supported, false if not
+  bool hasIPC() {
+    return hasCapability('ipc');
+  }
+
+  /// Check if the library supports the pgm:// protocol
+  ///
+  /// Returns true if supported, false if not
+  bool hasPGM() {
+    return hasCapability('pgm');
+  }
+
+  /// Check if the library supports the tipc:// protocol
+  ///
+  /// Returns true if supported, false if not
+  bool hasTIPC() {
+    return hasCapability('tipc');
+  }
+
+  /// Check if the library supports the norm:// protocol
+  ///
+  /// Returns true if supported, false if not
+  bool hasNORM() {
+    return hasCapability('norm');
+  }
+
+  /// Check if the library supports the CURVE security mechanism
+  ///
+  /// Returns true if supported, false if not
+  bool hasCURVE() {
+    return hasCapability('curve');
+  }
+
+  /// Check if the library supports the GSSAPI security mechanism
+  ///
+  /// Returns true if supported, false if not
+  bool hasGSSAPI() {
+    return hasCapability('gssapi');
+  }
+
+  /// Check if the library is built with the draft api
+  ///
+  /// Returns true if supported, false if not
+  bool hasDRAFT() {
+    return hasCapability('draft');
   }
 
   /// Create a new socket of the given [mode]
@@ -476,8 +551,8 @@ class ZSocket {
     final sendParams = more ? ZMQ_SNDMORE : 0;
     final result = _context._bindings
         .zmq_send(_socket, ptr.cast(), data.length, sendParams);
-    _context._checkReturnCode(result);
     malloc.free(ptr);
+    _context._checkReturnCode(result);
   }
 
   /// Sends the given [frame] over this socket
@@ -508,8 +583,8 @@ class ZSocket {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
     final result = _context._bindings.zmq_bind(_socket, endpointPointer);
-    _context._checkReturnCode(result);
     malloc.free(endpointPointer);
+    _context._checkReturnCode(result);
   }
 
   /// Connects the socket to an endpoint and then accepts incoming connections on that endpoint.
@@ -521,8 +596,8 @@ class ZSocket {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
     final result = _context._bindings.zmq_connect(_socket, endpointPointer);
-    _context._checkReturnCode(result);
     malloc.free(endpointPointer);
+    _context._checkReturnCode(result);
   }
 
   /// Closes the socket and releases underlying resources.
@@ -539,9 +614,10 @@ class ZSocket {
   /// Set a socket [option] to a specific [value]
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
-    _context._bindings
+    final result = _context._bindings
         .zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
+    _context._checkReturnCode(result);
   }
 
   /// Sets the socket's long term secret key.
@@ -614,13 +690,13 @@ class ZeroMQException implements Exception {
   /// Maps error codes to messages
   static const Map<int, String> _errorMessages = {
     // errno
-    EINTR: 'The operation was interrupted',
-    EBADF: 'Bad file descriptor',
-    // EAGAIN: '', // denpendant on what function has been called before
-    EACCES: 'Permission denied',
-    // EFAULT: '', // denpendant on what function has been called before
-    // EINVAL: '', // denpendant on what function has been called before
-    // EMFILE: '', // denpendant on what function has been called before
+    EINTR: 'EINTR: The operation was interrupted',
+    EBADF: 'EBADF: Bad file descriptor',
+    EAGAIN: 'EAGAIN', // denpendant on what function has been called before
+    EACCES: 'EACCES: Permission denied',
+    EFAULT: 'EFAULT', // denpendant on what function has been called before
+    EINVAL: 'EINVAL', // denpendant on what function has been called before
+    EMFILE: 'EMFILE', // denpendant on what function has been called before
 
     // 0MQ errors
     ENOTSUP: 'Not supported',

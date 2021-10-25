@@ -1,6 +1,6 @@
 name: dartzmq
 description: A simple dart zeromq implementation/wrapper around the libzmq C++ library
-version: 1.0.0-dev.5
+version: 1.0.0-dev.6
 homepage: https://github.com/enwi/dartzmq
 
 environment:
