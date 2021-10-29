@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartzmq/dartzmq.dart';
 import 'package:flutter/material.dart';
 
@@ -31,12 +33,35 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final ZContext _context = ZContext();
   late final ZSocket _socket;
+  String _receivedData = '';
+  late StreamSubscription _subscription;
 
   @override
   void initState() {
     _socket = _context.createSocket(SocketType.req);
     _socket.connect("tcp://localhost:5566");
     // _socket.connect("tcp://192.168.2.18:5566");
+
+    // listen for messages
+    _subscription = _socket.messages.listen((message) {
+      setState(() {
+        _receivedData = message.toString();
+      });
+    });
+
+    // listen for frames
+    // _subscription = _socket.frames.listen((frame) {
+    //   setState(() {
+    //     _receivedData = frame.toString();
+    //   });
+    // });
+
+    // listen for payloads
+    // _subscription = _socket.payloads.listen((payload) {
+    //   setState(() {
+    //     _receivedData = payload.toString();
+    //   });
+    // });
     super.initState();
   }
 
@@ -44,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _socket.close();
     _context.stop();
+    _subscription.cancel();
     super.dispose();
   }
 
@@ -61,14 +87,14 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'Press to send a message',
-            ),
+            const Text('Press to send a message'),
             MaterialButton(
               onPressed: _sendMessage,
               color: Colors.blue,
               child: const Text('Send'),
-            )
+            ),
+            const Text('Received'),
+            Text(_receivedData),
           ],
         ),
       ),

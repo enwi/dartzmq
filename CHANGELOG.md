@@ -1,3 +1,11 @@
+## 1.0.0-dev.7
+
+### Minor documentation improvements
+- Fix rename of `SocketMode` to `SocketType` in README
+- Add receiving messages (`ZMessage`, `ZFrame` and payloads) to README and example
+- Override `toString` function in `ZMessage` and `ZFrame` for better debugging experience
+
+
 ## 1.0.0-dev.6
 
 ### Free pointers before throwing a ZeroMQException

@@ -36,7 +36,7 @@ final ZContext context = ZContext();
 
 Create socket
 ```dart
-final ZSocket socket = context.createSocket(SocketMode.req);
+final ZSocket socket = context.createSocket(SocketType.req);
 ```
 
 Connect socket
@@ -47,6 +47,27 @@ socket.connect("tcp://localhost:5566");
 Send message
 ```dart
 socket.send([1, 2, 3, 4, 5]);
+```
+
+Receive `ZMessage`s
+```dart
+_socket.messages.listen((message) {
+    // Do something with message
+});
+```
+
+Receive `ZFrame`s
+```dart
+_socket.frames.listen((frame) {
+    // Do something with frame
+});
+```
+
+Receive payloads (`Uint8List`)
+```dart
+_socket.payloads.listen((payload) {
+    // Do something with payload
+});
 ```
 
 Destroy socket

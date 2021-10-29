@@ -351,6 +351,9 @@ class ZFrame {
   final bool hasMore;
 
   ZFrame(this.payload, {this.hasMore = false});
+
+  @override
+  String toString() => 'ZFrame[$payload]';
 }
 
 /// ZMessage provides a list-like container interface,
@@ -496,6 +499,10 @@ class ZMessage implements Queue<ZFrame> {
 
   @override
   Iterable<T> whereType<T>() => _frames.whereType<T>();
+
+  @override
+  String toString() =>
+      IterableBase.iterableToFullString(this, 'ZMessage[', ']');
 }
 
 /// ZeroMQ sockets present an abstraction of an asynchronous message queue,
