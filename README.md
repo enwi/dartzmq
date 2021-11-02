@@ -25,10 +25,14 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 > Especially when using this on windows you need to make sure that `libzmq` is compiled using `MSVC-2019` if you are using `clang` it will not work ([more info](https://flutterforum.co/t/windows-desktop-flutter-ffi-and-loading-the-clang-library/3842))
 
 ### Android
-Android has not been fully tested, but essentially you can follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android), which will get you a `libzmq.so`. Which you need to include in your project following [these steps](https://github.com/truongsinh/flutter-ffi-samples/blob/master/packages/sqlite/docs/android.md#update-gradle-script)
+> Note that you need to use Android NDK version r21d. Newer versions are currently not supported (see https://github.com/zeromq/libzmq/issues/4276)
+
+1. Follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android) to build a `libzmq.so` for different platforms
+2. Include these in your project following [these steps](https://github.com/truongsinh/flutter-ffi-samples/blob/master/packages/sqlite/docs/android.md#update-gradle-script)
+3. Include the compiled standard c++ library `libc++_shared.so` files located inside the Android NDK as in step 2 ([reference](https://developer.android.com/ndk/guides/cpp-support#cs))
+   - You can find these inside the Android NDK for example under this path `ndk\21.4.7075529\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\lib`
 
 ## Usage
-
 Create context
 ```dart
 final ZContext context = ZContext();
@@ -80,8 +84,7 @@ Destroy context
 context.stop();
 ```
 
-## Additional information
-
+<!-- ## Additional information
 TODO: Tell users more about the package: where to find more information, how to 
 contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+from the package authors, and more. -->
