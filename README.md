@@ -1,6 +1,7 @@
 # dartzmq
 A simple dart zeromq implementation/wrapper around the libzmq C++ library
 
+
 ## Features
 Currently supported:
 - Creating sockets (`pair`,  `pub`,  `sub`,  `req`,  `rep`,  `dealer`,  `router`,  `pull`,  `push`,  `xPub`,  `xSub`,  `stream`)
@@ -12,11 +13,12 @@ Currently supported:
 - Receiving multipart messages (`ZMessage`)
 - Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
 
+
 ## Getting started
-Currently only windows is officially supported as a platform, but it depends on the used shared library of `libzmq`.
-I have tested this on windows, which works. 
+Currently Windows and Android are officially supported as platforms, but it depends on the used shared library of `libzmq`.
+I have tested this on Windows and Android, which work. 
 Other platforms have not been tested, but should work. 
-If you have tested this plugin on another platform and got it to work, please share your findings and create an issue to add it to the list.
+If you have tested this plugin on another platform and got it to work, please share your steps and create an issue so I can add it to the list below.
 
 ### Windows
 Place a shared library of `libzmq` next to your executable (for example place `libzmq-v142-mt-4_3_5.dll` in the folder `yourproject/build/windows/runner/Debug/`)
@@ -28,9 +30,11 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 > Note that you need to use Android NDK version r21d. Newer versions are currently not supported (see https://github.com/zeromq/libzmq/issues/4276)
 
 1. Follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android) to build a `libzmq.so` for different platforms
+   - If you need `curve` support make sure to set the environment variable `CURVE` either to `export CURVE=libsodium` or `export CURVE=tweetnacl` before running the build command
 2. Include these in your project following [these steps](https://github.com/truongsinh/flutter-ffi-samples/blob/master/packages/sqlite/docs/android.md#update-gradle-script)
 3. Include the compiled standard c++ library `libc++_shared.so` files located inside the Android NDK as in step 2 ([reference](https://developer.android.com/ndk/guides/cpp-support#cs))
    - You can find these inside the Android NDK for example under this path `ndk\21.4.7075529\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\lib`
+
 
 ## Usage
 Create context
@@ -83,6 +87,7 @@ Destroy context
 ```dart
 context.stop();
 ```
+
 
 <!-- ## Additional information
 TODO: Tell users more about the package: where to find more information, how to 
