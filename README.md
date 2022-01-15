@@ -1,3 +1,6 @@
+[![Discord](https://img.shields.io/discord/781219798931603527.svg?label=enwi&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/YxVyJWX62h)
+[![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/enwi/dartzmq?label=release)](https://github.com/enwi/dartzmq/releases)
+
 # dartzmq
 A simple dart zeromq implementation/wrapper around the libzmq C++ library
 
