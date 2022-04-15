@@ -29,6 +29,21 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 > Note that in order for this plugin to work you will need to either get a shared library of `libzmq` or compile it yourself. 
 > Especially when using this on windows you need to make sure that `libzmq` is compiled using `MSVC-2019` if you are using `clang` it will not work ([more info](https://flutterforum.co/t/windows-desktop-flutter-ffi-and-loading-the-clang-library/3842))
 
+### Linux
+Installing [libzmq](https://github.com/zeromq/libzmq) and running `dart pub add dartzmq` should be all that is required to use this package in your own application. To also run the example project, follow these steps:
+
+1. Install [libzmq](https://github.com/zeromq/libzmq)
+2. Install [flutter](https://github.com/flutter/flutter) (It may be easiest to install from source, otherwise you can follow the [snap instructions](https://docs.flutter.dev/get-started/install/linux#install-flutter-using-snapd))
+3. Update .profile with PATH to /flutter/bin (e.g. export PATH=$PATH:~/src/flutter/bin)
+4. Ensure ninja-build, clang, and libgtk-3-dev are installed (via apt or other package manager)
+5. Run `flutter`
+6. Run `flutter config --enable-linux-desktop`
+7. Clone this repo and `cd dartzmq/example`
+8. `flutter create .` to enable linux desktop for this project
+9. `flutter run`
+10. Click the "Send" button and the received message will be displayed as an array of ints `[1,2,3,4,5]`
+
+
 ### Android
 > Note that you need to use Android NDK version r21d. Newer versions are currently not supported (see https://github.com/zeromq/libzmq/issues/4276)
 
