@@ -32,21 +32,29 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final ZContext _context = ZContext();
-  late final ZSocket _socket;
+  late final ZSocket _socket, _reply;
   String _receivedData = '';
   late StreamSubscription _subscription;
 
   @override
   void initState() {
-    _socket = _context.createSocket(SocketType.req);
-    _socket.connect("tcp://localhost:5566");
+    _socket = _context.createSocket(SocketType.dealer);
+    _socket.bind("tcp://*:5566");
     // _socket.connect("tcp://192.168.2.18:5566");
+
+    _reply = _context.createSocket(SocketType.router);
+    _reply.connect("tcp://localhost:5566");
 
     // listen for messages
     _subscription = _socket.messages.listen((message) {
       setState(() {
-        _receivedData = message.toString();
+        _receivedData = message.first.payload.toString();
       });
+    });
+
+    // echo messages back to dealer
+    _reply.messages.listen((message) {
+      _reply.sendMessage(message);
     });
 
     // listen for frames
@@ -74,6 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendMessage() {
+    // send message to router
     _socket.send([1, 2, 3, 4, 5]);
   }
 
