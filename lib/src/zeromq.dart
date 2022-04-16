@@ -581,6 +581,15 @@ class ZSocket {
     }
   }
 
+  /// Sends the given [string] payload over this socket.
+  ///
+  /// The [more] parameter (defaults to false) signals that this is a multi-part
+  /// message. ØMQ ensures atomic delivery of messages: peers shall receive
+  /// either all message parts of a message or none at all.
+  void sendString(final String string, {final bool more = false}) {
+    send(string.codeUnits, more: more);
+  }
+
   /// Creates an endpoint for accepting connections and binds to it.
   ///
   /// The [address] argument is a string consisting of two parts as follows: 'transport://address'.
