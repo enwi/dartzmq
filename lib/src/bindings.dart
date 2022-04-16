@@ -1,6 +1,8 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:ffi';
+import 'dart:developer';
+import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
@@ -22,7 +24,8 @@ class ZMQPollerEvent extends Struct {
 }
 
 class ZMQPollItem extends Struct {
-  external ZMQSocket socket;
+  external Pointer<Void> socket; // ZMQSocket
+
   @Int32()
   external int fd;
 
@@ -116,7 +119,7 @@ typedef ZmqSetsockoptDart = int Function(
     ZMQSocket socket, int option, Pointer<Uint8> optval, int optvallen);
 
 class ZMQBindings {
-  final DynamicLibrary library;
+  late final DynamicLibrary library;
 
   late final ZmqHasDart zmq_has;
 
@@ -147,7 +150,21 @@ class ZMQBindings {
 
   late final ZmqSetsockoptDart zmq_setsockopt;
 
-  ZMQBindings(this.library) {
+  ZMQBindings() {
+    _initLibrary();
+    _lookupFunctions();
+  }
+
+  void _initLibrary() {
+    final loaded = _loadLibrary('zmq') ||
+        _loadLibrary('libzmq') ||
+        _loadLibrary('libzmq-v142-mt-4_3_5');
+    if (!loaded) {
+      throw Exception('Could not load any zeromq library');
+    }
+  }
+
+  void _lookupFunctions() {
     zmq_has = library.lookupFunction<ZmqHasNative, ZmqHasDart>('zmq_has');
     zmq_errno =
         library.lookupFunction<ZmqErrnoNative, ZmqErrnoDart>('zmq_errno');
@@ -196,5 +213,35 @@ class ZMQBindings {
     zmq_setsockopt =
         library.lookupFunction<ZmqsetsockoptNative, ZmqSetsockoptDart>(
             'zmq_setsockopt');
+  }
+
+  bool _loadLibrary(final String name) {
+    try {
+      library = _dlOpenPlatformSpecific(name);
+      return true;
+    } catch (err) {
+      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
+    }
+    return false;
+  }
+
+  String _platformPath(final String name, {String? path}) {
+    path = path ?? '';
+    if (Platform.isLinux || Platform.isAndroid) {
+      return path + 'lib' + name + '.so';
+    }
+    if (Platform.isMacOS) {
+      return path + 'lib' + name + '.dylib';
+    }
+    if (Platform.isWindows) {
+      return path + name + '.dll';
+    }
+    throw Exception('Platform not implemented');
+  }
+
+  DynamicLibrary _dlOpenPlatformSpecific(final String name,
+      {final String? path}) {
+    String fullPath = _platformPath(name, path: path);
+    return DynamicLibrary.open(fullPath);
   }
 }

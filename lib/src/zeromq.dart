@@ -11,31 +11,11 @@ import 'package:ffi/ffi.dart';
 
 import 'bindings.dart';
 
-String _platformPath(final String name, {String? path}) {
-  path = path ?? '';
-  if (Platform.isLinux || Platform.isAndroid) {
-    return path + 'lib' + name + '.so';
-  }
-  if (Platform.isMacOS) {
-    return path + 'lib' + name + '.dylib';
-  }
-  if (Platform.isWindows) {
-    return path + name + '.dll';
-  }
-  throw Exception('Platform not implemented');
-}
-
-DynamicLibrary _dlOpenPlatformSpecific(final String name,
-    {final String? path}) {
-  String fullPath = _platformPath(name, path: path);
-  return DynamicLibrary.open(fullPath);
-}
+// Native bindings
+final ZMQBindings _bindings = ZMQBindings();
 
 /// High-level wrapper around the ØMQ C++ api.
 class ZContext {
-  /// Native bindings
-  late final ZMQBindings _bindings;
-
   /// Native context
   late final ZMQContext _context;
 
@@ -63,29 +43,9 @@ class ZContext {
   /// Note only one context should exist throughout your application
   /// and it should be closed if the app is disposed
   ZContext() {
-    _initBindings();
     _context = _bindings.zmq_ctx_new();
     _poller = _bindings.zmq_poller_new();
     _startPolling();
-  }
-
-  void _initBindings() {
-    final loaded = _loadBinding('zmq') ||
-        _loadBinding('libzmq') ||
-        _loadBinding('libzmq-v142-mt-4_3_5');
-    if (!loaded) {
-      throw Exception('Could not load any zeromq library');
-    }
-  }
-
-  bool _loadBinding(final String name) {
-    try {
-      _bindings = ZMQBindings(_dlOpenPlatformSpecific(name));
-      return true;
-    } catch (err) {
-      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
-    }
-    return false;
   }
 
   /// Shutdown zeromq. Will stop [_poll] asynchronously.
@@ -517,6 +477,7 @@ class ZMessage implements Queue<ZFrame> {
 class ZSocket {
   /// Native socket
   final ZMQSocket _socket;
+  ZMQSocket get socket => _socket;
 
   /// Global context
   final ZContext _context;
@@ -556,8 +517,8 @@ class ZSocket {
     ptr.asTypedList(data.length).setAll(0, data);
 
     final sendParams = more ? ZMQ_SNDMORE : 0;
-    final result = _context._bindings
-        .zmq_send(_socket, ptr.cast(), data.length, sendParams);
+    final result =
+        _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
     _context._checkReturnCode(result);
   }
@@ -598,7 +559,7 @@ class ZSocket {
   void bind(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_bind(_socket, endpointPointer);
+    final result = _bindings.zmq_bind(_socket, endpointPointer);
     malloc.free(endpointPointer);
     _context._checkReturnCode(result);
   }
@@ -611,7 +572,7 @@ class ZSocket {
   void connect(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_connect(_socket, endpointPointer);
+    final result = _bindings.zmq_connect(_socket, endpointPointer);
     malloc.free(endpointPointer);
     _context._checkReturnCode(result);
   }
@@ -621,7 +582,7 @@ class ZSocket {
   void close() {
     if (!_closed) {
       _context._handleSocketClosed(this);
-      _context._bindings.zmq_close(_socket);
+      _bindings.zmq_close(_socket);
       _controller.close();
       _closed = true;
     }
@@ -630,8 +591,8 @@ class ZSocket {
   /// Set a socket [option] to a specific [value]
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
-    final result = _context._bindings
-        .zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
+    final result = _bindings.zmq_setsockopt(
+        _socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
     _context._checkReturnCode(result);
   }
