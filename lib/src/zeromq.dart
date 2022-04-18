@@ -196,14 +196,6 @@ enum SocketType {
   stream
 }
 
-abstract class PollingType {
-  static int get pollnone => 0;
-  static int get pollin => ZMQ_POLLIN;
-  static int get pollout => ZMQ_POLLOUT;
-  static int get pollerr => ZMQ_POLLERR;
-  static int get pollpri => ZMQ_POLLPRI;
-}
-
 /// A ZFrame or 'frame' corresponds to one underlying zmq_msg_t in the libzmq code.
 /// When you read a frame from a socket, the [hasMore] member indicates
 /// if the frame is part of an unfinished multi-part message.

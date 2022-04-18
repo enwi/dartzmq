@@ -65,6 +65,32 @@ void _poll(List<Object> arguments) async {
     receiver.close();
 }
 
+enum PollingEvent {
+  poll_none,
+  poll_in,
+  poll_out,
+  poll_in_out,
+  poll_err,
+  poll_pri
+}
+
+int _pollingEventToInt(PollingEvent type) {
+  switch (type) {
+    case PollingEvent.poll_none:
+      return 0;
+    case PollingEvent.poll_in:
+      return ZMQ_POLLIN;
+    case PollingEvent.poll_out:
+      return ZMQ_POLLOUT;
+    case PollingEvent.poll_in_out:
+      return ZMQ_POLLIN | ZMQ_POLLOUT;
+    case PollingEvent.poll_err:
+      return ZMQ_POLLERR;
+    case PollingEvent.poll_pri:
+      return ZMQ_POLLPRI;
+  }
+}
+
 class ZPoller {
   final ZMQPoller _poller = _bindings.zmq_poller_new();
   final Map<ZMQSocket, ZSocket> _sockets = {};
@@ -76,8 +102,8 @@ class ZPoller {
     _receiver.listen(_pollListener);
   }
 
-  void add(ZSocket socket, int events) {
-    _bindings.zmq_poller_add(_poller, socket._socket, nullptr, events);
+  void add(ZSocket socket, PollingEvent events) {
+    _bindings.zmq_poller_add(_poller, socket._socket, nullptr, _pollingEventToInt(events));
     _sockets[socket._socket] = socket;
     _sender?.send(_sockets.length);
   }
@@ -88,8 +114,8 @@ class ZPoller {
     _sender?.send(_sockets.length);
   }
 
-  void modify(ZSocket socket, int events) {
-    _bindings.zmq_poller_modify(_poller, socket._socket, events);
+  void modify(ZSocket socket, PollingEvent events) {
+    _bindings.zmq_poller_modify(_poller, socket._socket, _pollingEventToInt(events));
   }
 
   void start() {
