@@ -83,6 +83,9 @@ void _poll(List<Object> arguments) async {
   int socketCount = arguments[1] as int;
   ZMQPoller poller = ZMQPoller.fromAddress(arguments[2] as int);
 
+  // Flag to run the poller loop - will only be set to false by a message from the main thread
+  bool run = true;
+
   // Create a ReceivedPort to message the outside world
   ReceivePort receiver = ReceivePort();
 
@@ -108,9 +111,6 @@ void _poll(List<Object> arguments) async {
 
   // Immediately send the corrsponding SendPort so the main thread can start communicating
   sender.send([_PollingMessage.send_port, receiver.sendPort]);
-
-  // Flag to run the poller loop - will only be set to false by a message from the main thread
-  bool run = true;
 
   while(run) {
     // Allocate the appropriate number of ZMQPollerEvents based on how many sockets have been added to the poller
@@ -272,7 +272,7 @@ class ZPoller {
             while ((returnCode = _bindings.zmq_msg_recv(msg, socket._socket, ZMQ_DONTWAIT)) > 0) {
               final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
 
-              final copyOfData = Uint8List.fromList(data.asTypedList(rc));
+              final copyOfData = Uint8List.fromList(data.asTypedList(returnCode));
               hasMore = _bindings.zmq_msg_more(msg) != 0;
 
               zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
