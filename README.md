@@ -15,6 +15,7 @@ Currently supported:
 - Socket options (`setOption(int option, String value)`)
 - Receiving multipart messages (`ZMessage`)
 - Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
+- Asynchronous polling using `ZPoller`
 
 
 ## Getting started

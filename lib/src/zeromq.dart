@@ -6,169 +6,58 @@ import 'dart:developer';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 
 import 'bindings.dart';
+part 'poller.dart';
 
-String _platformPath(final String name, {String? path}) {
-  path = path ?? '';
-  if (Platform.isLinux || Platform.isAndroid) {
-    return path + 'lib' + name + '.so';
-  }
-  if (Platform.isMacOS) {
-    return path + 'lib' + name + '.dylib';
-  }
-  if (Platform.isWindows) {
-    return path + name + '.dll';
-  }
-  throw Exception('Platform not implemented');
+// Native bindings
+final ZMQBindings _bindings = ZMQBindings();
+
+/// Allocates memory and casts it to a [ZMQMessage]
+ZMQMessage _allocateMessage() {
+  return malloc.allocate<Uint8>(64).cast();
 }
 
-DynamicLibrary _dlOpenPlatformSpecific(final String name,
-    {final String? path}) {
-  String fullPath = _platformPath(name, path: path);
-  return DynamicLibrary.open(fullPath);
+void _checkReturnCode(int code, {List<int> ignore = const []}) {
+  if (code < 0) {
+    _checkErrorCode(ignore: ignore);
+  }
+}
+
+void _checkErrorCode({List<int> ignore = const []}) {
+  final errorCode = _bindings.zmq_errno();
+  if (!ignore.contains(errorCode)) {
+    throw ZeroMQException(errorCode);
+  }
 }
 
 /// High-level wrapper around the ØMQ C++ api.
 class ZContext {
-  /// Native bindings
-  late final ZMQBindings _bindings;
-
   /// Native context
   late final ZMQContext _context;
-
-  /// Native poller
-  late final ZMQPoller _poller;
 
   /// Do we need to shutdown?
   bool _shutdown = false;
 
-  /// Used for shutting down asynchronously
-  Completer? _stopCompleter;
-
-  /// Timer used for running [_poll] function
-  Timer? _timer;
-
   /// Keeps track of all sockets created by [createSocket].
   /// Maps raw zeromq sockets [ZMQSocket] to our wrapper class [ZSocket].
   final Map<ZMQSocket, ZSocket> _createdSockets = {};
-
-  /// Keeps track of all sockets that are currently being listened to
-  final List<ZSocket> _listening = [];
 
   /// Create a new global ZContext
   ///
   /// Note only one context should exist throughout your application
   /// and it should be closed if the app is disposed
   ZContext() {
-    _initBindings();
     _context = _bindings.zmq_ctx_new();
-    _poller = _bindings.zmq_poller_new();
-    _startPolling();
   }
 
-  void _initBindings() {
-    final loaded = _loadBinding('zmq') ||
-        _loadBinding('libzmq') ||
-        _loadBinding('libzmq-v142-mt-4_3_5');
-    if (!loaded) {
-      throw Exception('Could not load any zeromq library');
-    }
-  }
-
-  bool _loadBinding(final String name) {
-    try {
-      _bindings = ZMQBindings(_dlOpenPlatformSpecific(name));
-      return true;
-    } catch (err) {
-      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
-    }
-    return false;
-  }
-
-  /// Shutdown zeromq. Will stop [_poll] asynchronously.
-  /// The returned [Future] will complete once [_poll] has been stopped
-  Future stop() {
-    _stopCompleter = Completer();
+  /// Shutdown zeromq.
+  void stop() {
     _shutdown = true;
-    return _stopCompleter!.future;
-  }
-
-  /// Allocates memory and casts it to a [ZMQMessage]
-  ZMQMessage _allocateMessage() {
-    return malloc.allocate<Uint8>(64).cast();
-  }
-
-  /// Starts the periodic polling task if it was not started already and
-  /// if there are actually listeners on sockets
-  void _startPolling() {
-    if (_timer == null && _listening.isNotEmpty) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _poll());
-    }
-  }
-
-  /// Polling task receiving and handling socket messages
-  void _poll() {
-    final socketCount = _listening.length;
-
-    final pollerEvents =
-        malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
-    final availableEventCount =
-        _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
-
-    if (availableEventCount > 0) {
-      final msg = _allocateMessage();
-      var rc = _bindings.zmq_msg_init(msg); // rc == 0
-      _checkReturnCode(rc);
-
-      for (var eventIdx = 0; eventIdx < availableEventCount; ++eventIdx) {
-        final pollerEvent = pollerEvents[eventIdx];
-        final socket = _createdSockets[pollerEvent.socket]!;
-
-        // Receive multiple message parts
-        ZMessage zMessage = ZMessage();
-        bool hasMore = true;
-        while ((rc =
-                _bindings.zmq_msg_recv(msg, socket._socket, ZMQ_DONTWAIT)) >
-            0) {
-          // final size = _bindings.zmq_msg_size(msg);
-          final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
-
-          final copyOfData = Uint8List.fromList(data.asTypedList(rc));
-          hasMore = _bindings.zmq_msg_more(msg) != 0;
-
-          zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
-
-          if (!hasMore) {
-            socket._controller.add(zMessage);
-            zMessage = ZMessage();
-          }
-        }
-
-        _checkReturnCode(rc, ignore: [EAGAIN]);
-      }
-
-      rc = _bindings.zmq_msg_close(msg); // rc == 0
-      _checkReturnCode(rc);
-
-      malloc.free(msg);
-    }
-
-    malloc.free(pollerEvents);
-
-    // Do we need to shutdown?
-    if (_shutdown) {
-      _shutdownInternal();
-    } else if (socketCount > 0) {
-      return;
-    }
-
-    // If we land here either there are no
-    _timer?.cancel();
-    _timer = null;
-    _stopCompleter?.complete(null);
+    _shutdownInternal();
   }
 
   /// Check whether a specified [capability] is available in the library.
@@ -252,23 +141,9 @@ class ZContext {
     return apiSocket;
   }
 
-  void _listen(ZSocket socket) {
-    _bindings.zmq_poller_add(_poller, socket._socket, nullptr, ZMQ_POLLIN);
-    _listening.add(socket);
-    _startPolling();
-  }
-
-  void _stopListening(ZSocket socket) {
-    _bindings.zmq_poller_remove(_poller, socket._socket);
-    _listening.remove(socket);
-  }
-
   void _handleSocketClosed(ZSocket socket) {
     if (!_shutdown) {
       _createdSockets.remove(socket._socket);
-    }
-    if (_listening.contains(socket)) {
-      _stopListening(socket);
     }
   }
 
@@ -277,27 +152,8 @@ class ZContext {
       socket.close();
     }
     _createdSockets.clear();
-    _listening.clear();
 
     _bindings.zmq_ctx_term(_context);
-
-    Pointer<ZMQPoller> pollerPointer = malloc.allocate<ZMQPoller>(0);
-    pollerPointer.value = _poller;
-    _bindings.zmq_poller_destroy(pollerPointer);
-    malloc.free(pollerPointer);
-  }
-
-  void _checkReturnCode(int code, {List<int> ignore = const []}) {
-    if (code < 0) {
-      _checkErrorCode(ignore: ignore);
-    }
-  }
-
-  void _checkErrorCode({List<int> ignore = const []}) {
-    final errorCode = _bindings.zmq_errno();
-    if (!ignore.contains(errorCode)) {
-      throw ZeroMQException(errorCode);
-    }
   }
 }
 
@@ -391,12 +247,10 @@ class ZMessage implements Queue<ZFrame> {
   ZFrame removeLast() => _frames.removeLast();
 
   @override
-  void removeWhere(bool Function(ZFrame element) test) =>
-      _frames.removeWhere(test);
+  void removeWhere(bool Function(ZFrame element) test) => _frames.removeWhere(test);
 
   @override
-  void retainWhere(bool Function(ZFrame element) test) =>
-      _frames.retainWhere(test);
+  void retainWhere(bool Function(ZFrame element) test) => _frames.retainWhere(test);
 
   @override
   bool any(bool Function(ZFrame element) test) => _frames.any(test);
@@ -414,25 +268,19 @@ class ZMessage implements Queue<ZFrame> {
   bool every(bool Function(ZFrame element) test) => _frames.every(test);
 
   @override
-  Iterable<T> expand<T>(Iterable<T> Function(ZFrame element) toElements) =>
-      _frames.expand(toElements);
+  Iterable<T> expand<T>(Iterable<T> Function(ZFrame element) toElements) => _frames.expand(toElements);
 
   @override
   ZFrame get first => _frames.first;
 
   @override
-  ZFrame firstWhere(bool Function(ZFrame element) test,
-          {ZFrame Function()? orElse}) =>
-      _frames.firstWhere(test, orElse: orElse);
+  ZFrame firstWhere(bool Function(ZFrame element) test, {ZFrame Function()? orElse}) => _frames.firstWhere(test, orElse: orElse);
 
   @override
-  T fold<T>(T initialValue,
-          T Function(T previousValue, ZFrame element) combine) =>
-      _frames.fold(initialValue, combine);
+  T fold<T>(T initialValue, T Function(T previousValue, ZFrame element) combine) => _frames.fold(initialValue, combine);
 
   @override
-  Iterable<ZFrame> followedBy(Iterable<ZFrame> other) =>
-      _frames.followedBy(other);
+  Iterable<ZFrame> followedBy(Iterable<ZFrame> other) => _frames.followedBy(other);
 
   @override
   void forEach(void Function(ZFrame element) action) => _frames.forEach(action);
@@ -450,9 +298,7 @@ class ZMessage implements Queue<ZFrame> {
   ZFrame get last => _frames.last;
 
   @override
-  ZFrame lastWhere(bool Function(ZFrame element) test,
-          {ZFrame Function()? orElse}) =>
-      _frames.lastWhere(test, orElse: orElse);
+  ZFrame lastWhere(bool Function(ZFrame element) test, {ZFrame Function()? orElse}) => _frames.lastWhere(test, orElse: orElse);
 
   @override
   int get length => _frames.length;
@@ -461,48 +307,40 @@ class ZMessage implements Queue<ZFrame> {
   Iterable<T> map<T>(T Function(ZFrame e) toElement) => _frames.map(toElement);
 
   @override
-  ZFrame reduce(ZFrame Function(ZFrame value, ZFrame element) combine) =>
-      _frames.reduce(combine);
+  ZFrame reduce(ZFrame Function(ZFrame value, ZFrame element) combine) => _frames.reduce(combine);
 
   @override
   ZFrame get single => _frames.single;
 
   @override
-  ZFrame singleWhere(bool Function(ZFrame element) test,
-          {ZFrame Function()? orElse}) =>
-      _frames.singleWhere(test, orElse: orElse);
+  ZFrame singleWhere(bool Function(ZFrame element) test, {ZFrame Function()? orElse}) => _frames.singleWhere(test, orElse: orElse);
 
   @override
   Iterable<ZFrame> skip(int count) => _frames.skip(count);
 
   @override
-  Iterable<ZFrame> skipWhile(bool Function(ZFrame value) test) =>
-      _frames.skipWhile(test);
+  Iterable<ZFrame> skipWhile(bool Function(ZFrame value) test) => _frames.skipWhile(test);
 
   @override
   Iterable<ZFrame> take(int count) => _frames.take(count);
 
   @override
-  Iterable<ZFrame> takeWhile(bool Function(ZFrame value) test) =>
-      _frames.takeWhile(test);
+  Iterable<ZFrame> takeWhile(bool Function(ZFrame value) test) => _frames.takeWhile(test);
 
   @override
-  List<ZFrame> toList({bool growable = true}) =>
-      _frames.toList(growable: growable);
+  List<ZFrame> toList({bool growable = true}) => _frames.toList(growable: growable);
 
   @override
   Set<ZFrame> toSet() => _frames.toSet();
 
   @override
-  Iterable<ZFrame> where(bool Function(ZFrame element) test) =>
-      _frames.where(test);
+  Iterable<ZFrame> where(bool Function(ZFrame element) test) => _frames.where(test);
 
   @override
   Iterable<T> whereType<T>() => _frames.whereType<T>();
 
   @override
-  String toString() =>
-      IterableBase.iterableToFullString(this, 'ZMessage[', ']');
+  String toString() => IterableBase.iterableToFullString(this, 'ZMessage[', ']');
 }
 
 /// ZeroMQ sockets present an abstraction of an asynchronous message queue,
@@ -517,6 +355,7 @@ class ZMessage implements Queue<ZFrame> {
 class ZSocket {
   /// Native socket
   final ZMQSocket _socket;
+  ZMQSocket get socket => _socket;
 
   /// Global context
   final ZContext _context;
@@ -538,11 +377,7 @@ class ZSocket {
 
   /// Construct a new [ZSocket] with a given underlying ZMQSocket [_socket] and the global ZContext [_context]
   ZSocket(this._socket, this._context) {
-    _controller = StreamController(onListen: () {
-      _context._listen(this);
-    }, onCancel: () {
-      _context._stopListening(this);
-    });
+    _controller = StreamController();
   }
 
   /// Sends the given [data] payload over this socket.
@@ -556,10 +391,9 @@ class ZSocket {
     ptr.asTypedList(data.length).setAll(0, data);
 
     final sendParams = more ? ZMQ_SNDMORE : 0;
-    final result = _context._bindings
-        .zmq_send(_socket, ptr.cast(), data.length, sendParams);
+    final result = _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Sends the given [frame] over this socket
@@ -598,9 +432,9 @@ class ZSocket {
   void bind(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_bind(_socket, endpointPointer);
+    final result = _bindings.zmq_bind(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Connects the socket to an endpoint and then accepts incoming connections on that endpoint.
@@ -611,9 +445,9 @@ class ZSocket {
   void connect(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_connect(_socket, endpointPointer);
+    final result = _bindings.zmq_connect(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Closes the socket and releases underlying resources.
@@ -621,7 +455,7 @@ class ZSocket {
   void close() {
     if (!_closed) {
       _context._handleSocketClosed(this);
-      _context._bindings.zmq_close(_socket);
+      _bindings.zmq_close(_socket);
       _controller.close();
       _closed = true;
     }
@@ -630,10 +464,9 @@ class ZSocket {
   /// Set a socket [option] to a specific [value]
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
-    final result = _context._bindings
-        .zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
+    final result = _bindings.zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Sets the socket's long term secret key.
