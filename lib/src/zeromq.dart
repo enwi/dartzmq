@@ -39,24 +39,12 @@ class ZContext {
   /// Native context
   late final ZMQContext _context;
 
-  /// Native poller
-  //late final ZMQPoller _poller;
-
   /// Do we need to shutdown?
   bool _shutdown = false;
-
-  /// Used for shutting down asynchronously
-  Completer? _stopCompleter;
-
-  /// Timer used for running [_poll] function
-  Timer? _timer;
 
   /// Keeps track of all sockets created by [createSocket].
   /// Maps raw zeromq sockets [ZMQSocket] to our wrapper class [ZSocket].
   final Map<ZMQSocket, ZSocket> _createdSockets = {};
-
-  /// Keeps track of all sockets that are currently being listened to
-  final List<ZSocket> _listening = [];
 
   /// Create a new global ZContext
   ///
@@ -64,85 +52,13 @@ class ZContext {
   /// and it should be closed if the app is disposed
   ZContext() {
     _context = _bindings.zmq_ctx_new();
-    //_poller = _bindings.zmq_poller_new();
-    //_startPolling();
   }
 
-  /// Shutdown zeromq. Will stop [_poll] asynchronously.
-  /// The returned [Future] will complete once [_poll] has been stopped
-  Future stop() {
-    _stopCompleter = Completer();
+  /// Shutdown zeromq.
+  void stop() {
     _shutdown = true;
-    return _stopCompleter!.future;
+    _shutdownInternal();
   }
-
-  /// Starts the periodic polling task if it was not started already and
-  /// if there are actually listeners on sockets
-  /*
-  void _startPolling() {
-    if (_timer == null && _listening.isNotEmpty) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _poll());
-    }
-  }
-
-  /// Polling task receiving and handling socket messages
-  void _poll() {
-    final socketCount = _listening.length;
-
-    final pollerEvents = malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
-    final availableEventCount = _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
-
-    if (availableEventCount > 0) {
-      final msg = _allocateMessage();
-      var rc = _bindings.zmq_msg_init(msg); // rc == 0
-      _checkReturnCode(rc);
-
-      for (var eventIdx = 0; eventIdx < availableEventCount; ++eventIdx) {
-        final pollerEvent = pollerEvents[eventIdx];
-        final socket = _createdSockets[pollerEvent.socket]!;
-
-        // Receive multiple message parts
-        ZMessage zMessage = ZMessage();
-        bool hasMore = true;
-        while ((rc = _bindings.zmq_msg_recv(msg, socket._socket, ZMQ_DONTWAIT)) > 0) {
-          // final size = _bindings.zmq_msg_size(msg);
-          final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
-
-          final copyOfData = Uint8List.fromList(data.asTypedList(rc));
-          hasMore = _bindings.zmq_msg_more(msg) != 0;
-
-          zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
-
-          if (!hasMore) {
-            socket._controller.add(zMessage);
-            zMessage = ZMessage();
-          }
-        }
-
-        _checkReturnCode(rc, ignore: [EAGAIN]);
-      }
-
-      rc = _bindings.zmq_msg_close(msg); // rc == 0
-      _checkReturnCode(rc);
-
-      malloc.free(msg);
-    }
-
-    malloc.free(pollerEvents);
-
-    // Do we need to shutdown?
-    if (_shutdown) {
-      _shutdownInternal();
-    } else if (socketCount > 0) {
-      return;
-    }
-
-    // If we land here either there are no
-    _timer?.cancel();
-    _timer = null;
-    _stopCompleter?.complete(null);
-  }
-  */
 
   /// Check whether a specified [capability] is available in the library.
   /// This allows bindings and applications to probe a library directly,
@@ -225,23 +141,9 @@ class ZContext {
     return apiSocket;
   }
 
-  void _listen(ZSocket socket) {
-    //_bindings.zmq_poller_add(_poller, socket._socket, nullptr, ZMQ_POLLIN);
-    _listening.add(socket);
-    //_startPolling();
-  }
-
-  void _stopListening(ZSocket socket) {
-    //_bindings.zmq_poller_remove(_poller, socket._socket);
-    _listening.remove(socket);
-  }
-
   void _handleSocketClosed(ZSocket socket) {
     if (!_shutdown) {
       _createdSockets.remove(socket._socket);
-    }
-    if (_listening.contains(socket)) {
-      _stopListening(socket);
     }
   }
 
@@ -250,14 +152,8 @@ class ZContext {
       socket.close();
     }
     _createdSockets.clear();
-    _listening.clear();
 
     _bindings.zmq_ctx_term(_context);
-
-    //Pointer<ZMQPoller> pollerPointer = malloc.allocate<ZMQPoller>(0);
-    //pollerPointer.value = _poller;
-    //_bindings.zmq_poller_destroy(pollerPointer);
-    //malloc.free(pollerPointer);
   }
 }
 
@@ -489,11 +385,7 @@ class ZSocket {
 
   /// Construct a new [ZSocket] with a given underlying ZMQSocket [_socket] and the global ZContext [_context]
   ZSocket(this._socket, this._context) {
-    _controller = StreamController(onListen: () {
-      _context._listen(this);
-    }, onCancel: () {
-      _context._stopListening(this);
-    });
+    _controller = StreamController();
   }
 
   /// Sends the given [data] payload over this socket.
