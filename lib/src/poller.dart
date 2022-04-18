@@ -209,16 +209,24 @@ class ZPoller {
   /// Polling should NOT be started again on this poller after calling shutdown().
   /// This call should be awaited to ensure the poller Isolate has completely stopped.
   Future<void> shutdown() async {
+    // Ask the poller Isolate to shut down
     _sender?.send([_PollingMessage.stop]);
+
+    // Initialize the completer so we can be signaled when the Isolate is finished
     _shutdownCompleter = Completer();
 
-    // if send port is null that means the _poll isolate as never spawned, so skip this
+    // If out SendPort is null that means the poll Isolate was never spawned, so skip this
     if (_sender != null) {
       await _shutdownCompleter?.future;
     }
 
+    // Close our ReceivePort and clear out socket map
     _receiver.close();
     _sockets.clear();
+
+    // Note, the sockets are not closed as they may be in use by other objects
+
+    // Free the underlying zmq_poller 
     Pointer<ZMQPoller> pollerPointer = malloc.allocate<ZMQPoller>(0);
     pollerPointer.value = _poller;
     _bindings.zmq_poller_destroy(pollerPointer);
