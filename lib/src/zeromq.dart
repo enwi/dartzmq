@@ -545,17 +545,24 @@ class ZSocket {
     });
   }
 
+
   /// Sends the given [data] payload over this socket.
   ///
   /// The [more] parameter (defaults to false) signals that this is a multi-part
   /// message. ØMQ ensures atomic delivery of messages: peers shall receive
   /// either all message parts of a message or none at all.
-  void send(final List<int> data, {final bool more = false}) {
+  ///
+  ///  The [nowait] parameter (defaults to false) specifies that the operation
+  ///  should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  ///  that block when there are no available peers (or all peers have full
+  ///  high-water mark). If the message cannot be queued on the socket,
+  ///  the zmq_send() function shall fail with errno set to EAGAIN.
+  void send(final List<int> data, {final bool more = false, final bool nowait = false}) {
     _checkNotClosed();
     final ptr = malloc.allocate<Uint8>(data.length);
     ptr.asTypedList(data.length).setAll(0, data);
 
-    final sendParams = more ? ZMQ_SNDMORE : 0;
+    final sendParams = more ? ZMQ_SNDMORE : (nowait ? ZMQ_DONTWAIT : 0);
     final result = _context._bindings
         .zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
