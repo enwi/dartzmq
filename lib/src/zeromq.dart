@@ -562,7 +562,7 @@ class ZSocket {
     final ptr = malloc.allocate<Uint8>(data.length);
     ptr.asTypedList(data.length).setAll(0, data);
 
-    final sendParams = more ? ZMQ_SNDMORE : (nowait ? ZMQ_DONTWAIT : 0);
+    final sendParams = (more ? ZMQ_SNDMORE : 0) | (nowait ? ZMQ_DONTWAIT : 0);
     final result = _context._bindings
         .zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
