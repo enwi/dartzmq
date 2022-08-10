@@ -1,3 +1,11 @@
+## 1.0.0-dev.9
+
+### Include binaries for Android and Windows to streamline usage
+- Add `libzmq` binaries for Android
+- Add `libzmq` binaries for Windows
+- Add counter to example and ip address of host machine
+
+
 ## 1.0.0-dev.8
 
 ### Remove flutter dependencies

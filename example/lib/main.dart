@@ -35,11 +35,14 @@ class _MyHomePageState extends State<MyHomePage> {
   late final ZSocket _socket;
   String _receivedData = '';
   late StreamSubscription _subscription;
+  int _presses = 0;
 
   @override
   void initState() {
     _socket = _context.createSocket(SocketType.req);
     _socket.connect("tcp://localhost:5566");
+    // host ip address in android simulator is 10.0.2.2
+    // _socket.connect("tcp://10.0.2.2:5566");
     // _socket.connect("tcp://192.168.2.18:5566");
 
     // listen for messages
@@ -74,7 +77,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _sendMessage() {
-    _socket.send([1, 2, 3, 4, 5]);
+    ++_presses;
+    _socket.send([_presses]);
   }
 
   @override
