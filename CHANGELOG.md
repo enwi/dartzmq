@@ -1,3 +1,10 @@
+## 1.0.0-dev.8
+
+### Remove flutter dependencies
+- Remove flutter dependencies (`environment`, `sdk`, `flutter_test`, `flutter_lint`)
+- Bump example dependencies
+
+
 ## 1.0.0-dev.7
 
 ### Minor documentation improvements
