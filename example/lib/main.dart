@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:dartzmq/dartzmq.dart';
 import 'package:flutter/material.dart';
 
-/// !IMPORTANT! Dont't forget to copy your shared library (.dll, .so or .dylib) to the executable path
+/// !IMPORTANT! If you are not running the example on Windows or Android
+/// dont't forget to copy your shared library (.dll, .so or .dylib) to the executable path
 void main() {
   runApp(const MyApp());
 }
