@@ -43,3 +43,16 @@ class ZeroMQException implements Exception {
     EHOSTUNREACH: 'Host unreachable',
   };
 }
+
+void _checkReturnCode(int code, {List<int> ignore = const []}) {
+  if (code < 0) {
+    _checkErrorCode(ignore: ignore);
+  }
+}
+
+void _checkErrorCode({List<int> ignore = const []}) {
+  final errorCode = _bindings.zmq_errno();
+  if (!ignore.contains(errorCode)) {
+    throw ZeroMQException(errorCode);
+  }
+}

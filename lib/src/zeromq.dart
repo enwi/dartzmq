@@ -2,9 +2,7 @@ library dartzmq;
 
 import 'dart:async';
 import 'dart:collection';
-import 'dart:developer';
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
@@ -15,31 +13,11 @@ part 'exception.dart';
 part 'container.dart';
 part 'socket.dart';
 
-String _platformPath(final String name, {String? path}) {
-  path = path ?? '';
-  if (Platform.isLinux || Platform.isAndroid) {
-    return path + 'lib' + name + '.so';
-  }
-  if (Platform.isMacOS) {
-    return path + 'lib' + name + '.dylib';
-  }
-  if (Platform.isWindows) {
-    return path + name + '.dll';
-  }
-  throw Exception('Platform not implemented');
-}
-
-DynamicLibrary _dlOpenPlatformSpecific(final String name,
-    {final String? path}) {
-  String fullPath = _platformPath(name, path: path);
-  return DynamicLibrary.open(fullPath);
-}
+// Native bindings
+final ZMQBindings _bindings = ZMQBindings();
 
 /// High-level wrapper around the ØMQ C++ api.
 class ZContext {
-  /// Native bindings
-  late final ZMQBindings _bindings;
-
   /// Native context
   late final ZMQContext _context;
 
@@ -67,29 +45,9 @@ class ZContext {
   /// Note only one context should exist throughout your application
   /// and it should be closed if the app is disposed
   ZContext() {
-    _initBindings();
     _context = _bindings.zmq_ctx_new();
     _poller = _bindings.zmq_poller_new();
     _startPolling();
-  }
-
-  void _initBindings() {
-    final loaded = _loadBinding('zmq') ||
-        _loadBinding('libzmq') ||
-        _loadBinding('libzmq-v142-mt-4_3_5');
-    if (!loaded) {
-      throw Exception('Could not load any zeromq library');
-    }
-  }
-
-  bool _loadBinding(final String name) {
-    try {
-      _bindings = ZMQBindings(_dlOpenPlatformSpecific(name));
-      return true;
-    } catch (err) {
-      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
-    }
-    return false;
   }
 
   /// Shutdown zeromq. Will stop [_poll] asynchronously.
@@ -98,11 +56,6 @@ class ZContext {
     _stopCompleter = Completer();
     _shutdown = true;
     return _stopCompleter!.future;
-  }
-
-  /// Allocates memory and casts it to a [ZMQMessage]
-  ZMQMessage _allocateMessage() {
-    return malloc.allocate<Uint8>(64).cast();
   }
 
   /// Starts the periodic polling task if it was not started already and
@@ -123,7 +76,7 @@ class ZContext {
         _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
 
     if (availableEventCount > 0) {
-      final frame = _allocateMessage();
+      final frame = ZMQBindings.allocateMessage();
       var rc = _bindings.zmq_msg_init(frame); // rc == 0
       _checkReturnCode(rc);
 
@@ -287,18 +240,5 @@ class ZContext {
     pollerPointer.value = _poller;
     _bindings.zmq_poller_destroy(pollerPointer);
     malloc.free(pollerPointer);
-  }
-
-  void _checkReturnCode(int code, {List<int> ignore = const []}) {
-    if (code < 0) {
-      _checkErrorCode(ignore: ignore);
-    }
-  }
-
-  void _checkErrorCode({List<int> ignore = const []}) {
-    final errorCode = _bindings.zmq_errno();
-    if (!ignore.contains(errorCode)) {
-      throw ZeroMQException(errorCode);
-    }
   }
 }

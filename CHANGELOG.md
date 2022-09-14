@@ -4,6 +4,8 @@
 - Fix bug where empty frames are seen as invalid ones
 - Reduce scope of `hasMore` variable
 - Split library code into smaller parts
+- Make `_bindings` global and load library directly
+- Add `sendString` convenience function
 
 
 ## 1.0.0-dev.9

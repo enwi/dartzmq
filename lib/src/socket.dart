@@ -90,10 +90,19 @@ class ZSocket {
     ptr.asTypedList(data.length).setAll(0, data);
 
     final sendParams = more ? ZMQ_SNDMORE : 0;
-    final result = _context._bindings
-        .zmq_send(_socket, ptr.cast(), data.length, sendParams);
+    final result =
+        _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
+  }
+
+  /// Sends the given [string] over this socket
+  ///
+  /// The [more] parameter (defaults to false) signals that this is a multi-part
+  /// message. ØMQ ensures atomic delivery of messages: peers shall receive
+  /// either all message parts of a message or none at all.
+  void sendString(final String string, {final bool more = false}) {
+    send(string.codeUnits, more: more);
   }
 
   /// Sends the given [frame] over this socket
@@ -123,9 +132,9 @@ class ZSocket {
   void bind(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_bind(_socket, endpointPointer);
+    final result = _bindings.zmq_bind(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Connects the socket to an endpoint and then accepts incoming connections on that endpoint.
@@ -136,9 +145,9 @@ class ZSocket {
   void connect(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
-    final result = _context._bindings.zmq_connect(_socket, endpointPointer);
+    final result = _bindings.zmq_connect(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Closes the socket and releases underlying resources.
@@ -146,7 +155,7 @@ class ZSocket {
   void close() {
     if (!_closed) {
       _context._handleSocketClosed(this);
-      _context._bindings.zmq_close(_socket);
+      _bindings.zmq_close(_socket);
       _controller.close();
       _closed = true;
     }
@@ -155,10 +164,10 @@ class ZSocket {
   /// Set a socket [option] to a specific [value]
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
-    final result = _context._bindings
-        .zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
+    final result = _bindings.zmq_setsockopt(
+        _socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
-    _context._checkReturnCode(result);
+    _checkReturnCode(result);
   }
 
   /// Sets the socket's long term secret key.
