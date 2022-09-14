@@ -3,6 +3,7 @@
 ### Bugfix and code cleanup
 - Fix bug where empty frames are seen as invalid ones
 - Reduce scope of `hasMore` variable
+- Split library code into smaller parts
 
 
 ## 1.0.0-dev.9
