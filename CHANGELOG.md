@@ -1,3 +1,10 @@
+## 1.0.0-dev.10
+
+### Bugfix and code cleanup
+- Fix bug where empty frames are seen as invalid ones
+- Reduce scope of `hasMore` variable
+
+
 ## 1.0.0-dev.9
 
 ### Include binaries for Android and Windows to streamline usage

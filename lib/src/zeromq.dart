@@ -119,8 +119,8 @@ class ZContext {
         _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
 
     if (availableEventCount > 0) {
-      final msg = _allocateMessage();
-      var rc = _bindings.zmq_msg_init(msg); // rc == 0
+      final frame = _allocateMessage();
+      var rc = _bindings.zmq_msg_init(frame); // rc == 0
       _checkReturnCode(rc);
 
       for (var eventIdx = 0; eventIdx < availableEventCount; ++eventIdx) {
@@ -129,15 +129,14 @@ class ZContext {
 
         // Receive multiple message parts
         ZMessage zMessage = ZMessage();
-        bool hasMore = true;
         while ((rc =
-                _bindings.zmq_msg_recv(msg, socket._socket, ZMQ_DONTWAIT)) >
+                _bindings.zmq_msg_recv(frame, socket._socket, ZMQ_DONTWAIT)) >=
             0) {
           // final size = _bindings.zmq_msg_size(msg);
-          final data = _bindings.zmq_msg_data(msg).cast<Uint8>();
-
+          final data = _bindings.zmq_msg_data(frame).cast<Uint8>();
           final copyOfData = Uint8List.fromList(data.asTypedList(rc));
-          hasMore = _bindings.zmq_msg_more(msg) != 0;
+
+          final hasMore = _bindings.zmq_msg_more(frame) != 0;
 
           zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
 
@@ -150,10 +149,9 @@ class ZContext {
         _checkReturnCode(rc, ignore: [EAGAIN]);
       }
 
-      rc = _bindings.zmq_msg_close(msg); // rc == 0
+      rc = _bindings.zmq_msg_close(frame); // rc == 0
+      malloc.free(frame);
       _checkReturnCode(rc);
-
-      malloc.free(msg);
     }
 
     malloc.free(pollerEvents);
