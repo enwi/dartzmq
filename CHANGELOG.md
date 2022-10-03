@@ -1,3 +1,10 @@
+## 1.0.0-dev.11
+
+### Update binaries
+- Update android binaries to NDK r25
+- Include android x86_64 binaries
+
+
 ## 1.0.0-dev.10
 
 ### Bugfix and code cleanup
