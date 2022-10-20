@@ -1,3 +1,12 @@
+## 1.0.0-dev.11
+
+### Update binaries
+- Update android binaries to NDK r25
+- Include android x86_64 binaries
+- Move android binaries to `native/jni`
+- Ignore `EINTR` in some places
+
+
 ## 1.0.0-dev.10
 
 ### Bugfix and code cleanup

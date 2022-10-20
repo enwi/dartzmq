@@ -2,6 +2,7 @@ library dartzmq;
 
 import 'dart:async';
 import 'dart:collection';
+import 'dart:developer';
 import 'dart:ffi';
 import 'dart:typed_data';
 
@@ -103,7 +104,7 @@ class ZContext {
           }
         }
 
-        _checkReturnCode(rc, ignore: [EAGAIN]);
+        _checkReturnCode(rc, ignore: [EAGAIN, EINTR]);
       }
 
       rc = _bindings.zmq_msg_close(frame); // rc == 0
