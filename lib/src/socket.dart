@@ -93,7 +93,7 @@ class ZSocket {
     final result =
         _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
-    _checkReturnCode(result);
+    _checkReturnCode(result, ignore: [EINTR]);
   }
 
   /// Sends the given [string] over this socket
@@ -134,7 +134,7 @@ class ZSocket {
     final endpointPointer = address.toNativeUtf8();
     final result = _bindings.zmq_bind(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _checkReturnCode(result);
+    _checkReturnCode(result, ignore: [EINTR]);
   }
 
   /// Connects the socket to an endpoint and then accepts incoming connections on that endpoint.
@@ -147,7 +147,7 @@ class ZSocket {
     final endpointPointer = address.toNativeUtf8();
     final result = _bindings.zmq_connect(_socket, endpointPointer);
     malloc.free(endpointPointer);
-    _checkReturnCode(result);
+    _checkReturnCode(result, ignore: [EINTR]);
   }
 
   /// Closes the socket and releases underlying resources.
@@ -167,7 +167,7 @@ class ZSocket {
     final result = _bindings.zmq_setsockopt(
         _socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
-    _checkReturnCode(result);
+    _checkReturnCode(result, ignore: [EINTR]);
   }
 
   /// Sets the socket's long term secret key.
