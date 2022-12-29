@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:dartzmq/dartzmq.dart';
 import 'package:flutter/material.dart';
@@ -33,14 +34,14 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final ZContext _context = ZContext();
-  late final ZSocket _socket;
+  late final MonitoredZSocket _socket;
   String _receivedData = '';
   late StreamSubscription _subscription;
   int _presses = 0;
 
   @override
   void initState() {
-    _socket = _context.createSocket(SocketType.req);
+    _socket = _context.createMonitoredSocket(SocketType.req);
     _socket.connect("tcp://localhost:5566");
     // host ip address in android simulator is 10.0.2.2
     // _socket.connect("tcp://10.0.2.2:5566");
@@ -97,6 +98,17 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: _sendMessage,
               color: Colors.blue,
               child: const Text('Send'),
+            ),
+            StreamBuilder<SocketEvent>(
+              stream: _socket.events,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final event = snapshot.data!;
+                  log('Socket event: ${event.event}, value: ${event.value}');
+                  return Text('Event: ${event.event}, value: ${event.value}');
+                }
+                return const LinearProgressIndicator();
+              },
             ),
             const Text('Received'),
             Text(_receivedData),

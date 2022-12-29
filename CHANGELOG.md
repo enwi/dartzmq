@@ -1,3 +1,11 @@
+## 1.0.0-dev.12
+
+### Add socket monitoring capability
+- Add ZMonitor to receive socket state events
+- Add MonitoredZSocket which receives socket state events
+- Update example to display socket state and value
+
+
 ## 1.0.0-dev.11
 
 ### Update binaries

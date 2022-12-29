@@ -6,8 +6,6 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
-part 'constants.dart';
-
 typedef ZMQContext = Pointer<Void>;
 typedef ZMQMessage = Pointer<Void>;
 typedef ZMQPoller = Pointer<Void>;
@@ -117,10 +115,15 @@ typedef ZmqSendNative = Int32 Function(
 typedef ZmqSendDart = int Function(
     ZMQSocket socket, Pointer<Void> buffer, int size, int flags);
 
-typedef ZmqsetsockoptNative = Int32 Function(
+typedef ZmqSetsockoptNative = Int32 Function(
     ZMQSocket socket, Int32 option, Pointer<Uint8> optval, IntPtr optvallen);
 typedef ZmqSetsockoptDart = int Function(
     ZMQSocket socket, int option, Pointer<Uint8> optval, int optvallen);
+
+typedef ZmqSocketMonitorNative = Int32 Function(
+    ZMQSocket socket, Pointer<Utf8> endpoint, Int16 events);
+typedef ZmqSocketMonitorDart = int Function(
+    ZMQSocket socket, Pointer<Utf8> endpoint, int events);
 
 class ZMQBindings {
   late final DynamicLibrary library;
@@ -155,6 +158,8 @@ class ZMQBindings {
 
   late final ZmqSetsockoptDart zmq_setsockopt;
 
+  late final ZmqSocketMonitorDart zmq_socket_monitor;
+
   ZMQBindings() {
     _initLibrary();
     _lookupFunctions();
@@ -176,7 +181,11 @@ class ZMQBindings {
 
   DynamicLibrary _dlOpenPlatformSpecific(final String name,
       {final String? path}) {
-    String fullPath = _platformPath(name, path: path);
+    if (Platform.isIOS || Platform.isMacOS) {
+      return DynamicLibrary.process();
+    }
+
+    final String fullPath = _platformPath(name, path: path);
     return DynamicLibrary.open(fullPath);
   }
 
@@ -249,8 +258,12 @@ class ZMQBindings {
         .lookupFunction<ZmqMsgMoreNative, ZmqMsgMoreDart>('zmq_msg_more');
 
     zmq_setsockopt =
-        library.lookupFunction<ZmqsetsockoptNative, ZmqSetsockoptDart>(
+        library.lookupFunction<ZmqSetsockoptNative, ZmqSetsockoptDart>(
             'zmq_setsockopt');
+
+    zmq_socket_monitor =
+        library.lookupFunction<ZmqSocketMonitorNative, ZmqSocketMonitorDart>(
+            'zmq_socket_monitor');
   }
 
   /// Allocates memory and casts it to a [ZMQMessage]

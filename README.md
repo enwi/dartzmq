@@ -15,6 +15,7 @@ Currently supported:
 - Socket options (`setOption(int option, String value)`)
 - Receiving multipart messages (`ZMessage`)
 - Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
+- Monitoring socket states (`ZMonitor` & `MonitoredZSocket`)
 
 
 ## Getting started
@@ -47,28 +48,52 @@ socket.send([1, 2, 3, 4, 5]);
 
 Receive `ZMessage`s
 ```dart
-_socket.messages.listen((message) {
+socket.messages.listen((message) {
     // Do something with message
 });
 ```
 
 Receive `ZFrame`s
 ```dart
-_socket.frames.listen((frame) {
+socket.frames.listen((frame) {
     // Do something with frame
 });
 ```
 
 Receive payloads (`Uint8List`)
 ```dart
-_socket.payloads.listen((payload) {
+socket.payloads.listen((payload) {
     // Do something with payload
+});
+```
+
+Receie socket events
+```dart
+final MonitoredZSocket socket = context.createMonitoredSocket(SocketType.req);
+socket.events.listen((event) {
+    log('Received event ${event.event} with value ${event.value}');
+});
+```
+```dart
+final ZSocket socket = context.createSocket(SocketType.req);
+final ZMonitor monitor = ZMonitor(
+    context: context,
+    socket: socket,
+    event: ZMQ_EVENT_CONNECTED | ZMQ_EVENT_CLOSED, // Only listen for connected and closed events
+);
+monitor.events.listen((event) {
+    log('Received event ${event.event} with value ${event.value}');
 });
 ```
 
 Destroy socket
 ```dart
 socket.close();
+```
+
+Destroy monitor
+```dart
+monitor.close();
 ```
 
 Destroy context

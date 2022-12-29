@@ -220,3 +220,24 @@ class ZSocket {
     }
   }
 }
+
+/// A socket that is monitored by [ZMonitor] to receive events like
+/// [ZEvent.CONNECTED], [ZEvent.DISCONNECTED] as well as other [ZEvent]s
+class MonitoredZSocket extends ZSocket {
+  /// Monitor monitoring this socket
+  late final ZMonitor _monitor;
+
+  /// Stream of received [ZEvent]s
+  Stream<SocketEvent> get events => _monitor.events;
+
+  /// Construct a new [MonitoredZSocket] with a given underlying ZMQSocket [_socket], the global ZContext [_context] and the given [event]s to monitor
+  MonitoredZSocket(super.socket, super.context, int event) {
+    _monitor = ZMonitor(context: _context, socket: this, event: event);
+  }
+
+  @override
+  void close() {
+    _monitor.close();
+    super.close();
+  }
+}

@@ -10,8 +10,10 @@ import 'package:ffi/ffi.dart';
 
 import 'bindings.dart';
 
-part 'exception.dart';
+part 'constants.dart';
 part 'container.dart';
+part 'exception.dart';
+part 'monitor.dart';
 part 'socket.dart';
 
 // Native bindings
@@ -201,9 +203,19 @@ class ZContext {
   }
 
   /// Create a new socket of the given [mode]
-  ZSocket createSocket(SocketType mode) {
+  ZSocket createSocket(final SocketType mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = ZSocket(socket, this);
+    _createdSockets[socket] = apiSocket;
+    return apiSocket;
+  }
+
+  /// Create a new monitored socket of the given [mode] and optional [event]s
+  /// to monitor
+  MonitoredZSocket createMonitoredSocket(final SocketType mode,
+      {final int event = ZMQ_EVENT_ALL}) {
+    final socket = _bindings.zmq_socket(_context, mode.index);
+    final apiSocket = MonitoredZSocket(socket, this, event);
     _createdSockets[socket] = apiSocket;
     return apiSocket;
   }
