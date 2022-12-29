@@ -545,7 +545,6 @@ class ZSocket {
     });
   }
 
-
   /// Sends the given [data] payload over this socket.
   ///
   /// The [more] parameter (defaults to false) signals that this is a multi-part
