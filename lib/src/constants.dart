@@ -1,6 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
-part of 'bindings.dart';
+part of 'zeromq.dart';
 
 // Constants, https://github.com/zeromq/libzmq/blob/9bb6b2142385b78d47811b73745b9c21ec366106/include/zmq.h#L285-L301
 
@@ -142,3 +142,29 @@ const int EACCES = 13;
 const int EFAULT = 14;
 const int EINVAL = 22;
 const int EMFILE = 24;
+
+// Socket events
+const int ZMQ_EVENT_CONNECTED = 0x0001;
+const int ZMQ_EVENT_CONNECT_DELAYED = 0x0002;
+const int ZMQ_EVENT_CONNECT_RETRIED = 0x0004;
+const int ZMQ_EVENT_LISTENING = 0x0008;
+const int ZMQ_EVENT_BIND_FAILED = 0x0010;
+const int ZMQ_EVENT_ACCEPTED = 0x0020;
+const int ZMQ_EVENT_ACCEPT_FAILED = 0x0040;
+const int ZMQ_EVENT_CLOSED = 0x0080;
+const int ZMQ_EVENT_CLOSE_FAILED = 0x0100;
+const int ZMQ_EVENT_DISCONNECTED = 0x0200;
+const int ZMQ_EVENT_MONITOR_STOPPED = 0x0400;
+const int ZMQ_EVENT_ALL = 0xFFFF;
+
+/*  Unspecified system errors during handshake. Event value is an errno.      */
+const int ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL = 0x0800;
+/*  Handshake complete successfully with successful authentication (if        *
+ *  enabled). Event value is unused.                                          */
+const int ZMQ_EVENT_HANDSHAKE_SUCCEEDED = 0x1000;
+/*  Protocol errors between ZMTP peers or between server and ZAP handler.     *
+ *  Event value is one of ZMQ_PROTOCOL_ERROR_*                                */
+const int ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL = 0x2000;
+/*  Failed authentication requests. Event value is the numeric ZAP status     *
+ *  code, i.e. 300, 400 or 500.                                               */
+const int ZMQ_EVENT_HANDSHAKE_FAILED_AUTH = 0x4000;

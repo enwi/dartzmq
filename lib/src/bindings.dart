@@ -1,10 +1,10 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:developer';
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:ffi/ffi.dart';
-
-part 'constants.dart';
 
 typedef ZMQContext = Pointer<Void>;
 typedef ZMQMessage = Pointer<Void>;
@@ -55,6 +55,11 @@ typedef ZmqCtxNewDart = ZMQContext Function();
 // IO multiplexing
 typedef ZmqPollerNewNative = ZMQPoller Function();
 typedef ZmqPollerNewDart = ZMQPoller Function();
+
+typedef ZmqPollerModifyNative = Int32 Function(
+    ZMQPoller poller, ZMQSocket socket, Int16 events);
+typedef ZmqPollerModifyDart = int Function(
+    ZMQPoller poller, ZMQSocket socket, int events);
 
 typedef ZmqPollerDestroyNative = Int32 Function(Pointer<ZMQPoller> poller);
 typedef ZmqPollerDestroyDart = int Function(Pointer<ZMQPoller> poller);
@@ -110,13 +115,18 @@ typedef ZmqSendNative = Int32 Function(
 typedef ZmqSendDart = int Function(
     ZMQSocket socket, Pointer<Void> buffer, int size, int flags);
 
-typedef ZmqsetsockoptNative = Int32 Function(
+typedef ZmqSetsockoptNative = Int32 Function(
     ZMQSocket socket, Int32 option, Pointer<Uint8> optval, IntPtr optvallen);
 typedef ZmqSetsockoptDart = int Function(
     ZMQSocket socket, int option, Pointer<Uint8> optval, int optvallen);
 
+typedef ZmqSocketMonitorNative = Int32 Function(
+    ZMQSocket socket, Pointer<Utf8> endpoint, Int16 events);
+typedef ZmqSocketMonitorDart = int Function(
+    ZMQSocket socket, Pointer<Utf8> endpoint, int events);
+
 class ZMQBindings {
-  final DynamicLibrary library;
+  late final DynamicLibrary library;
 
   late final ZmqHasDart zmq_has;
 
@@ -132,6 +142,7 @@ class ZMQBindings {
   late final ZmqSendDart zmq_send;
 
   late final ZmqPollerNewDart zmq_poller_new;
+  late final ZmqPollerModifyDart zmq_poller_modify;
   late final ZmqPollerDestroyDart zmq_poller_destroy;
   late final ZmqPollerAddDart zmq_poller_add;
   late final ZmqPollerRemoveDart zmq_poller_remove;
@@ -147,7 +158,57 @@ class ZMQBindings {
 
   late final ZmqSetsockoptDart zmq_setsockopt;
 
-  ZMQBindings(this.library) {
+  late final ZmqSocketMonitorDart zmq_socket_monitor;
+
+  ZMQBindings() {
+    _initLibrary();
+    _lookupFunctions();
+  }
+
+  String _platformPath(final String name, {String? path}) {
+    path = path ?? '';
+    if (Platform.isLinux || Platform.isAndroid) {
+      return path + 'lib' + name + '.so';
+    }
+    if (Platform.isMacOS) {
+      return path + 'lib' + name + '.dylib';
+    }
+    if (Platform.isWindows) {
+      return path + name + '.dll';
+    }
+    throw Exception('Platform not implemented');
+  }
+
+  DynamicLibrary _dlOpenPlatformSpecific(final String name,
+      {final String? path}) {
+    if (Platform.isIOS || Platform.isMacOS) {
+      return DynamicLibrary.process();
+    }
+
+    final String fullPath = _platformPath(name, path: path);
+    return DynamicLibrary.open(fullPath);
+  }
+
+  bool _loadLibrary(final String name) {
+    try {
+      library = _dlOpenPlatformSpecific(name);
+      return true;
+    } catch (err) {
+      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
+    }
+    return false;
+  }
+
+  void _initLibrary() {
+    final loaded = _loadLibrary('zmq') ||
+        _loadLibrary('libzmq') ||
+        _loadLibrary('libzmq-v142-mt-4_3_5');
+    if (!loaded) {
+      throw Exception('Could not load any zeromq library');
+    }
+  }
+
+  void _lookupFunctions() {
     zmq_has = library.lookupFunction<ZmqHasNative, ZmqHasDart>('zmq_has');
     zmq_errno =
         library.lookupFunction<ZmqErrnoNative, ZmqErrnoDart>('zmq_errno');
@@ -167,6 +228,9 @@ class ZMQBindings {
 
     zmq_poller_new = library
         .lookupFunction<ZmqPollerNewNative, ZmqPollerNewDart>('zmq_poller_new');
+    zmq_poller_modify =
+        library.lookupFunction<ZmqPollerModifyNative, ZmqPollerModifyDart>(
+            'zmq_poller_modify');
     zmq_poller_destroy =
         library.lookupFunction<ZmqPollerDestroyNative, ZmqPollerDestroyDart>(
             'zmq_poller_destroy');
@@ -194,7 +258,16 @@ class ZMQBindings {
         .lookupFunction<ZmqMsgMoreNative, ZmqMsgMoreDart>('zmq_msg_more');
 
     zmq_setsockopt =
-        library.lookupFunction<ZmqsetsockoptNative, ZmqSetsockoptDart>(
+        library.lookupFunction<ZmqSetsockoptNative, ZmqSetsockoptDart>(
             'zmq_setsockopt');
+
+    zmq_socket_monitor =
+        library.lookupFunction<ZmqSocketMonitorNative, ZmqSocketMonitorDart>(
+            'zmq_socket_monitor');
+  }
+
+  /// Allocates memory and casts it to a [ZMQMessage]
+  static ZMQMessage allocateMessage() {
+    return malloc.allocate<Uint8>(64).cast();
   }
 }

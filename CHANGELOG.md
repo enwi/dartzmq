@@ -1,3 +1,45 @@
+## 1.0.0-dev.12
+
+### Add socket monitoring capability
+- Add ZMonitor to receive socket state events
+- Add MonitoredZSocket which receives socket state events
+- Update example to display socket state and value
+
+
+## 1.0.0-dev.11
+
+### Update binaries
+- Update android binaries to NDK r25
+- Include android x86_64 binaries
+- Move android binaries to `native/jni`
+- Ignore `EINTR` in some places
+
+
+## 1.0.0-dev.10
+
+### Bugfix and code cleanup
+- Fix bug where empty frames are seen as invalid ones
+- Reduce scope of `hasMore` variable
+- Split library code into smaller parts
+- Make `_bindings` global and load library directly
+- Add `sendString` convenience function
+
+
+## 1.0.0-dev.9
+
+### Include binaries for Android and Windows to streamline usage
+- Add `libzmq` binaries for Android
+- Add `libzmq` binaries for Windows
+- Add counter to example and ip address of host machine
+
+
+## 1.0.0-dev.8
+
+### Remove flutter dependencies
+- Remove flutter dependencies (`environment`, `sdk`, `flutter_test`, `flutter_lint`)
+- Bump example dependencies
+
+
 ## 1.0.0-dev.7
 
 ### Minor documentation improvements
