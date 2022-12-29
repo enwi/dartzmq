@@ -1,3 +1,10 @@
+## 1.0.0-dev.13
+
+### Add dontwait to socket send functions
+- Add `DONTWAIT` flag option to socket send functions (thanks @izludec)
+- Add documentation on which socket methods might throw an exception
+
+
 ## 1.0.0-dev.12
 
 ### Add socket monitoring capability

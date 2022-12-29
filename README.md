@@ -44,6 +44,7 @@ socket.connect("tcp://localhost:5566");
 Send message
 ```dart
 socket.send([1, 2, 3, 4, 5]);
+socket.sendString('My Message');
 ```
 
 Receive `ZMessage`s
@@ -67,7 +68,7 @@ socket.payloads.listen((payload) {
 });
 ```
 
-Receie socket events
+Receive socket events
 ```dart
 final MonitoredZSocket socket = context.createMonitoredSocket(SocketType.req);
 socket.events.listen((event) {

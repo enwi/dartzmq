@@ -84,12 +84,21 @@ class ZSocket {
   /// The [more] parameter (defaults to false) signals that this is a multi-part
   /// message. ØMQ ensures atomic delivery of messages: peers shall receive
   /// either all message parts of a message or none at all.
-  void send(final List<int> data, {final bool more = false}) {
+  ///
+  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  /// that block when there are no available peers (or all peers have full
+  /// high-water mark). If the message cannot be queued on the socket,
+  /// the zmq_send() function shall fail with errno set to EAGAIN.
+  ///
+  /// Throws [ZeroMQException] on error
+  void send(final List<int> data,
+      {final bool more = false, final bool nowait = false}) {
     _checkNotClosed();
     final ptr = malloc.allocate<Uint8>(data.length);
     ptr.asTypedList(data.length).setAll(0, data);
 
-    final sendParams = more ? ZMQ_SNDMORE : 0;
+    final sendParams = more ? ZMQ_SNDMORE : 0 | (nowait ? ZMQ_DONTWAIT : 0);
     final result =
         _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
     malloc.free(ptr);
@@ -101,26 +110,63 @@ class ZSocket {
   /// The [more] parameter (defaults to false) signals that this is a multi-part
   /// message. ØMQ ensures atomic delivery of messages: peers shall receive
   /// either all message parts of a message or none at all.
-  void sendString(final String string, {final bool more = false}) {
-    send(string.codeUnits, more: more);
+  ///
+  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  /// that block when there are no available peers (or all peers have full
+  /// high-water mark). If the message cannot be queued on the socket,
+  /// the zmq_send() function shall fail with errno set to EAGAIN.
+  ///
+  /// Throws [ZeroMQException] on error
+  void sendString(final String string,
+      {final bool more = false, final bool nowait = false}) {
+    send(
+      string.codeUnits,
+      more: more,
+      nowait: nowait,
+    );
   }
 
   /// Sends the given [frame] over this socket
   ///
   /// This is a convenience function and is the same as calling
   /// [send(frame.payload, more: frame.hasMore)]
-  void sendFrame(final ZFrame frame) {
-    send(frame.payload, more: frame.hasMore);
+  ///
+  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  /// that block when there are no available peers (or all peers have full
+  /// high-water mark). If the message cannot be queued on the socket,
+  /// the zmq_send() function shall fail with errno set to EAGAIN.
+  ///
+  /// Throws [ZeroMQException] on error
+  void sendFrame(final ZFrame frame, {final bool nowait = false}) {
+    send(
+      frame.payload,
+      more: frame.hasMore,
+      nowait: nowait,
+    );
   }
 
   /// Sends the given multi-part [message] over this socket
   ///
   /// This is a convenience function.
   /// Note that the individual [ZFrame.hasMore] are ignored
-  void sendMessage(final ZMessage message) {
+  ///
+  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  /// that block when there are no available peers (or all peers have full
+  /// high-water mark). If the message cannot be queued on the socket,
+  /// the zmq_send() function shall fail with errno set to EAGAIN.
+  ///
+  /// Throws [ZeroMQException] on error
+  void sendMessage(final ZMessage message, {final bool nowait = false}) {
     final lastIndex = message.length - 1;
     for (int i = 0; i < message.length; ++i) {
-      send(message.elementAt(i).payload, more: i < lastIndex ? true : false);
+      send(
+        message.elementAt(i).payload,
+        more: i < lastIndex ? true : false,
+        nowait: nowait,
+      );
     }
   }
 
@@ -129,6 +175,8 @@ class ZSocket {
   /// The [address] argument is a string consisting of two parts as follows: 'transport://address'.
   /// The transport part specifies the underlying transport protocol to use.
   /// The meaning of the address part is specific to the underlying transport protocol selected.
+  ///
+  /// Throws [ZeroMQException] on error
   void bind(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
@@ -142,6 +190,8 @@ class ZSocket {
   /// The [address] argument is a string consisting of two parts as follows: 'transport://address'.
   /// The transport part specifies the underlying transport protocol to use.
   /// The meaning of the address part is specific to the underlying transport protocol selected.
+  ///
+  /// Throws [ZeroMQException] on error
   void connect(final String address) {
     _checkNotClosed();
     final endpointPointer = address.toNativeUtf8();
@@ -162,6 +212,8 @@ class ZSocket {
   }
 
   /// Set a socket [option] to a specific [value]
+  ///
+  /// Throws [ZeroMQException] on error
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
     final result = _bindings.zmq_setsockopt(
@@ -173,6 +225,8 @@ class ZSocket {
   /// Sets the socket's long term secret key.
   /// You must set this on both CURVE client and server sockets, see zmq_curve(7).
   /// You can provide the [key] as a 40-character string encoded in the Z85 encoding format.
+  ///
+  /// Throws [ZeroMQException] on error
   void setCurveSecretKey(final String key) {
     setOption(ZMQ_CURVE_SECRETKEY, key);
   }
@@ -181,6 +235,8 @@ class ZSocket {
   /// You must set this on CURVE client sockets, see zmq_curve(7).
   /// You can provide the [key] as a 40-character string encoded in the Z85 encoding format.
   /// The public key must always be used with the matching secret key.
+  ///
+  /// Throws [ZeroMQException] on error
   void setCurvePublicKey(final String key) {
     setOption(ZMQ_CURVE_PUBLICKEY, key);
   }
@@ -189,6 +245,8 @@ class ZSocket {
   /// You must set this on CURVE client sockets, see zmq_curve(7).
   /// You can provide the [key] as a 40-character string encoded in the Z85 encoding format.
   /// This key must have been generated together with the server's secret key.
+  ///
+  /// Throws [ZeroMQException] on error
   void setCurveServerKey(final String key) {
     setOption(ZMQ_CURVE_SERVERKEY, key);
   }
@@ -201,6 +259,8 @@ class ZSocket {
   /// non-empty [topic] shall subscribe to all messages beginning with the specified
   /// prefix. Mutiple filters may be attached to a single [ZMQ_SUB] socket, in which case a
   /// message shall be accepted if it matches at least one filter.
+  ///
+  /// Throws [ZeroMQException] on error
   void subscribe(final String topic) {
     setOption(ZMQ_SUBSCRIBE, topic);
   }
@@ -210,10 +270,13 @@ class ZSocket {
   /// the [ZMQ_SUBSCRIBE] option. If the socket has several instances of the same filter
   /// attached the [ZMQ_UNSUBSCRIBE] option shall remove only one instance, leaving the rest in
   /// place and functional.
+  ///
+  /// Throws [ZeroMQException] on error
   void unsubscribe(final String topic) {
     setOption(ZMQ_UNSUBSCRIBE, topic);
   }
 
+  /// Throws a [StateError] when called and this socket is closed
   void _checkNotClosed() {
     if (_closed) {
       throw StateError("This operation can't be performed on a closed socket!");
