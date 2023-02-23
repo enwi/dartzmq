@@ -1,3 +1,10 @@
+## 1.0.0-dev.14
+
+### Update binaries
+- Update android binaries to NDK r25c
+- Improve python example echo server
+
+
 ## 1.0.0-dev.13
 
 ### Add dontwait to socket send functions

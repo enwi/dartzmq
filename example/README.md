@@ -4,19 +4,28 @@ For the example to work you will need some kind of backend that replies to the `
 The easiest way is using the following python script, which will act as a server that just replies with the same message sent to it.
 Also don't forget to install `pyzmq` with `pip install pyzmq`.
 ```python
+#!/usr/bin/env python
+
+import sys
 import zmq
 
 context = zmq.Context()
+poller = zmq.Poller()
 socket = context.socket(zmq.REP)
+
 socket.bind("tcp://*:5566")
 
-while True:
-    #  Wait for next request from client
-    message = socket.recv()
-    print("Received request: %s" % message)
+poller.register(socket, zmq.POLLIN)
 
-    #  Send reply back to client
-    socket.send(message)
+print("Running...")
+while True:
+    items = dict(poller.poll())
+    for sock in items:
+        msg = sock.recv_multipart()
+        print("I: %r" % (msg))
+        reply = ['ECHO'.encode()] + msg
+        print("O: %r" % (reply))
+        sock.send_multipart(reply)
 ```
 
 ## Further helpful resources
