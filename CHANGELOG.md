@@ -1,3 +1,10 @@
+## 1.0.0-dev.15
+
+### Use `Dealer` instead of `Req` socket in example
+- Resolve exceptions caused by synchronous `Req` socket by using asynchronous `Dealer` socket
+- Improve python example by using async `Router` socket and making it interruptible
+
+
 ## 1.0.0-dev.14
 
 ### Update binaries

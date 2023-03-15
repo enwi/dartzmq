@@ -6,26 +6,46 @@ Also don't forget to install `pyzmq` with `pip install pyzmq`.
 ```python
 #!/usr/bin/env python
 
-import sys
 import zmq
 
-context = zmq.Context()
-poller = zmq.Poller()
-socket = context.socket(zmq.REP)
 
-socket.bind("tcp://*:5566")
+def main():
+    context = zmq.Context()
+    poller = zmq.Poller()
+    socket = context.socket(zmq.ROUTER)
 
-poller.register(socket, zmq.POLLIN)
+    address = "tcp://*:{}".format(5566)
+    socket.bind(address)
 
-print("Running...")
-while True:
-    items = dict(poller.poll())
-    for sock in items:
-        msg = sock.recv_multipart()
-        print("I: %r" % (msg))
-        reply = ['ECHO'.encode()] + msg
-        print("O: %r" % (reply))
-        sock.send_multipart(reply)
+    poller.register(socket, zmq.POLLIN)
+
+    print("Running...")
+    try:
+        while True:
+            items = dict(poller.poll(zmq.NOBLOCK))
+            for sock in items:
+                try:
+                    msg = sock.recv_multipart(zmq.NOBLOCK)
+                    print("I: %r" % (msg))
+                    reply = msg + ['ECHO'.encode()]
+                    print("O: %r" % (reply))
+                    sock.send_multipart(reply)
+                except:
+                    print("Could not read socket")
+                    pass
+    finally:
+        socket.unbind(address)  # ALWAYS RELEASE PORT
+        socket.close()  # ALWAYS RELEASE RESOURCES
+        context.term()  # ALWAYS RELEASE RESOURCES
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Done")
+        pass
+
 ```
 
 ## Further helpful resources

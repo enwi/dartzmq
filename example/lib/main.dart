@@ -41,11 +41,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _socket = _context.createMonitoredSocket(SocketType.req);
-    // _socket.connect("tcp://localhost:5566");
+    _socket = _context.createMonitoredSocket(SocketType.dealer);
+    _socket.connect("tcp://localhost:5566");
     // host ip address in android simulator is 10.0.2.2
     // _socket.connect("tcp://10.0.2.2:5566");
-    _socket.connect("tcp://192.168.2.34:5566");
+    // _socket.connect("tcp://192.168.2.34:5566");
 
     // listen for messages
     _subscription = _socket.messages.listen((message) {
@@ -80,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _sendMessage() {
     ++_presses;
-    _socket.send([_presses]);
+    _socket.send([_presses], nowait: true);
   }
 
   @override
