@@ -127,6 +127,42 @@ class ZSocket {
     );
   }
 
+  /**
+   * Receive a message from the socket, blocking.
+   * Useful for REQ/REP sockets where you want to wait for a reply.
+   *
+   * flags can be ZMQ_DONTWAIT or ZMQ_SNDMORE
+   */
+  ZMessage recv({int flags = 0}) {
+    _checkNotClosed();
+
+    final frame = ZMQBindings.allocateMessage();
+    var rc = _bindings.zmq_msg_init(frame); // rc == 0
+    _checkReturnCode(rc);
+
+    try {
+      ZMessage zMessage = ZMessage();
+      while (true) {
+        rc = _bindings.zmq_msg_recv(frame, _socket, flags);
+        _checkReturnCode(rc);
+        final data = _bindings.zmq_msg_data(frame).cast<Uint8>();
+        final copyOfData = Uint8List.fromList(data.asTypedList(rc));
+
+        final hasMore = _bindings.zmq_msg_more(frame) != 0;
+
+        zMessage.add(ZFrame(copyOfData, hasMore: hasMore));
+        if (!hasMore) {
+          return zMessage;
+        }
+      }
+    }
+    finally {
+      rc = _bindings.zmq_msg_close(frame); // rc == 0
+      malloc.free(frame);
+      _checkReturnCode(rc);
+    }
+  }
+
   /// Sends the given [frame] over this socket
   ///
   /// This is a convenience function and is the same as calling
