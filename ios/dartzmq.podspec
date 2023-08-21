@@ -7,7 +7,7 @@ A simple dart zeromq implementation/wrapper around the libzmq C++ library.
                        DESC
   s.homepage         = 'https://github.com/enwi/dartzmq'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'wirmo' => 'contact@wirmo.com' }
+  s.author           = { 'wirmo' => 'contact@wirmo.de' }
 
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
