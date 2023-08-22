@@ -1,0 +1,6 @@
+package com.wajahat.dartzmq_example
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity() {
+}
