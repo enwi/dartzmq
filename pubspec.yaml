@@ -15,7 +15,6 @@ dependencies:
 
 dev_dependencies:
    ffi: ^2.0.1
-   ffigen: ">=4.1.2"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
