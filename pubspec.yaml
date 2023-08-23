@@ -42,5 +42,3 @@ flutter:
         ffiPlugin: true
       linux:
         ffiPlugin: true
-      ios: 
-        ffiPlugin: true
