@@ -1,13 +1,13 @@
 Pod::Spec.new do |s|
   s.name             = 'dartzmq'
-  s.version          = '1.0.0-dev.15'
-  s.summary          = 'A simple dart zeromq implementation/wrapper around the libzmq C++ library'
+  s.version          = '0.0.1'
+  s.summary          = 'A new Flutter FFI plugin project.'
   s.description      = <<-DESC
-A simple dart zeromq implementation/wrapper around the libzmq C++ library.
+A new Flutter FFI plugin project.
                        DESC
-  s.homepage         = 'https://github.com/enwi/dartzmq'
+  s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'wirmo' => 'contact@wirmo.com' }
+  s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
