@@ -119,6 +119,14 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 3. Include the compiled standard c++ library `libc++_shared.so` files located inside the Android NDK as in step 2 ([reference](https://developer.android.com/ndk/guides/cpp-support#cs))
    - You can find these inside the Android NDK for example under this path `ndk\21.4.7075529\toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\lib`
 
+#### IOS
+> Note IOS arm64 architecture supported so it will run from iPhone5s to the latest Iphone, Ipads devices
+1. To make it Run on simulator you have to modify the podspec file in the ios directory of plugin
+2. modify this   - s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq.a -lstdc++" } 
+  - From
+  s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq.a -lstdc++" }
+  - To
+    s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq_simulator.a -lstdc++" }
 
 <!-- ## Additional information
 Tell users more about the package: where to find more information, how to 
