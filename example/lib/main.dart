@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 /// !IMPORTANT! If you are not running the example on Windows or Android
 /// dont't forget to copy your shared library (.dll, .so or .dylib) to the executable path
-/// !IMPORTANT! For IOS running on Simulator you have to replace the libzmq.a with libzmq_simulator.a in dartzmq.podspec  file in the ios folder of plugin
 void main() {
   runApp(const MyApp());
 }
