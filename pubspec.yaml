@@ -14,6 +14,7 @@ dependencies:
   ffi: ">=2.0.0"
 
 
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -41,5 +42,7 @@ flutter:
         ffiPlugin: true
       ios: 
         ffiPlugin: true
+
       macos:
         ffiPlugin: true
+
