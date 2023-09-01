@@ -13,8 +13,6 @@ environment:
 dependencies:
   ffi: ">=2.0.0"
 
-dev_dependencies:
-   ffi: ^2.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -42,4 +40,6 @@ flutter:
       linux:
         ffiPlugin: true
       ios: 
+        ffiPlugin: true
+      macos:
         ffiPlugin: true
