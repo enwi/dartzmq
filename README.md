@@ -61,7 +61,6 @@ socket.frames.listen((frame) {
 });
 ```
 
-> NOTE: There're only ASYNC methods above to use. If you're trying to use req/rep pattern, consider using `SocketType.dealer` instead. Therefore you need to add an empty ZFrame at the beginning of your ZMessage as identification.
 
 Receive payloads (`Uint8List`)
 ```dart
@@ -70,6 +69,7 @@ socket.payloads.listen((payload) {
 });
 ```
 
+> NOTE: There're only ASYNC methods above to use. If you're trying to use req/rep pattern, consider using `SocketType.dealer` instead. Therefore you need to add an empty ZFrame at the beginning of your ZMessage as identification.
 Receive socket events
 ```dart
 final MonitoredZSocket socket = context.createMonitoredSocket(SocketType.req);
