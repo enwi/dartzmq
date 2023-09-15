@@ -82,6 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void _sendMessage() {
     ++_presses;
     _socket.send([_presses], nowait: true);
+    // NOTE: if you're using dealer/rep, an empty message for identification is required.
+    // newMessage.add(ZFrame(Uint8List(0)));
+    // newMessage.add(ZFrame(Uint8List.fromList([_presses])));
+    // _socket.sendMessage(newMessage, nowait: true);
   }
 
   @override
