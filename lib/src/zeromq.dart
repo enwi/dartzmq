@@ -37,11 +37,11 @@ class ZContext {
   Timer? _timer;
 
   /// Keeps track of all sockets created by [createSocket].
-  /// Maps raw zeromq sockets [ZMQSocket] to our wrapper class [ZSocket].
-  final Map<ZMQSocket, ZSocket> _createdSockets = {};
+  final List<ZBaseSocket> _createdSockets = [];
 
-  /// Keeps track of all sockets that are currently being listened to
-  final List<ZSocket> _listening = [];
+  /// Keeps track of all sockets that should be listened to.
+  /// Maps raw zeromq sockets [ZMQSocket] to our wrapper class [ZSocket].
+  final Map<ZMQSocket, ZSocket> _listenedSockets = {};
 
   /// Create a new global ZContext
   ///
@@ -64,19 +64,17 @@ class ZContext {
   /// Starts the periodic polling task if it was not started already and
   /// if there are actually listeners on sockets
   void _startPolling() {
-    if (_timer == null && _listening.isNotEmpty) {
+    if (_timer == null && _listenedSockets.isNotEmpty) {
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _poll());
     }
   }
 
   /// Polling task receiving and handling socket messages
   void _poll() {
-    final socketCount = _listening.length;
+    final socketCount = _listenedSockets.length;
 
-    final pollerEvents =
-        malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
-    final availableEventCount =
-        _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
+    final pollerEvents = malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
+    final availableEventCount = _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
 
     if (availableEventCount > 0) {
       final frame = ZMQBindings.allocateMessage();
@@ -85,13 +83,11 @@ class ZContext {
 
       for (var eventIdx = 0; eventIdx < availableEventCount; ++eventIdx) {
         final pollerEvent = pollerEvents[eventIdx];
-        final socket = _createdSockets[pollerEvent.socket]!;
+        final socket = _listenedSockets[pollerEvent.socket]!;
 
         // Receive multiple message parts
         ZMessage zMessage = ZMessage();
-        while ((rc =
-                _bindings.zmq_msg_recv(frame, socket._socket, ZMQ_DONTWAIT)) >=
-            0) {
+        while ((rc = _bindings.zmq_msg_recv(frame, socket._socket, ZMQ_DONTWAIT)) >= 0) {
           // final size = _bindings.zmq_msg_size(msg);
           final data = _bindings.zmq_msg_data(frame).cast<Uint8>();
           final copyOfData = Uint8List.fromList(data.asTypedList(rc));
@@ -206,46 +202,52 @@ class ZContext {
   ZSocket createSocket(final SocketType mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = ZSocket(socket, this);
-    _createdSockets[socket] = apiSocket;
+    _createdSockets.add(apiSocket);
+    return apiSocket;
+  }
+
+  ZSyncSocket createdSynSocket(final SocketType mode) {
+    final socket = _bindings.zmq_socket(_context, mode.index);
+    final apiSocket = ZSyncSocket(socket, this);
+    _createdSockets.add(apiSocket);
     return apiSocket;
   }
 
   /// Create a new monitored socket of the given [mode] and optional [event]s
   /// to monitor
-  MonitoredZSocket createMonitoredSocket(final SocketType mode,
-      {final int event = ZMQ_EVENT_ALL}) {
+  MonitoredZSocket createMonitoredSocket(final SocketType mode, {final int event = ZMQ_EVENT_ALL}) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = MonitoredZSocket(socket, this, event);
-    _createdSockets[socket] = apiSocket;
+    _createdSockets.add(apiSocket);
     return apiSocket;
   }
 
   void _listen(ZSocket socket) {
     _bindings.zmq_poller_add(_poller, socket._socket, nullptr, ZMQ_POLLIN);
-    _listening.add(socket);
+    _listenedSockets[socket._socket] = socket;
     _startPolling();
   }
 
   void _stopListening(ZSocket socket) {
     _bindings.zmq_poller_remove(_poller, socket._socket);
-    _listening.remove(socket);
+    _listenedSockets.remove(socket._socket);
   }
 
-  void _handleSocketClosed(ZSocket socket) {
+  void _handleSocketClosed(ZBaseSocket socket) {
     if (!_shutdown) {
-      _createdSockets.remove(socket._socket);
+      _createdSockets.remove(socket);
     }
-    if (_listening.contains(socket)) {
+    if (socket is ZSocket && _listenedSockets.containsKey(socket._socket)) {
       _stopListening(socket);
     }
   }
 
   void _shutdownInternal() {
-    for (final socket in _createdSockets.values) {
+    for (final socket in _createdSockets) {
       socket.close();
     }
     _createdSockets.clear();
-    _listening.clear();
+    _listenedSockets.clear();
 
     _bindings.zmq_ctx_term(_context);
 
