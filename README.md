@@ -8,14 +8,16 @@ A simple dart zeromq implementation/wrapper around the libzmq C++ library
 ## Features
 Currently supported:
 - Creating sockets (`pair`,  `pub`,  `sub`,  `req`,  `rep`,  `dealer`,  `router`,  `pull`,  `push`,  `xPub`,  `xSub`,  `stream`)
-- Sending messages (of type `List<int>`)
+    - Depending on the zeromq library also `server`, `client`, `radio`, `dish`, `channel`, `peer`, `raw`, `scatter` and `gather`
+- Sending messages (of type `List<int>`, `String`, `ZFrame` or `ZMessage`)
 - Bind (`bind(String address)`)
 - Connect (`connect(String address)`)
 - Curve (`setCurvePublicKey(String key)`, `setCurveSecretKey(String key)` and `setCurveServerKey(String key)`)
 - Socket options (`setOption(int option, String value)`)
 - Receiving multipart messages (`ZMessage`)
-- Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
-- Monitoring socket states (`ZMonitor` & `MonitoredZSocket`)
+- Topic subscription for `sub` sockets (`subscribe(String topic)` and `unsubscribe(String topic)`)
+- Monitoring socket states (`ZMonitor` and `MonitoredZSocket`)
+- Asynchronous (`ZSocket`) and Synchronous (`ZSyncSocket`) sockets
 
 
 ## Getting started
@@ -31,9 +33,14 @@ Create context
 final ZContext context = ZContext();
 ```
 
-Create socket
+Create asynchronous socket
 ```dart
 final ZSocket socket = context.createSocket(SocketType.req);
+```
+
+Create synchronous socket
+```dart
+final ZSyncSocket socket = context.createSocket(SocketType.req);
 ```
 
 Connect socket

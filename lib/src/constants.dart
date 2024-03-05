@@ -17,6 +17,15 @@ const int ZMQ_PUSH = 8;
 const int ZMQ_XPUB = 9;
 const int ZMQ_XSUB = 10;
 const int ZMQ_STREAM = 11;
+const int ZMQ_SERVER = 12;
+const int ZMQ_CLIENT = 13;
+const int ZMQ_RADIO = 14;
+const int ZMQ_DISH = 15;
+const int ZMQ_CHANNEL = 16;
+const int ZMQ_PEER = 17;
+const int ZMQ_RAW = 18;
+const int ZMQ_SCATTER = 19;
+const int ZMQ_GATHER = 20;
 
 // Poller
 const int ZMQ_POLLIN = 1;
