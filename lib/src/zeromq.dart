@@ -73,8 +73,10 @@ class ZContext {
   void _poll() {
     final socketCount = _listenedSockets.length;
 
-    final pollerEvents = malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
-    final availableEventCount = _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
+    final pollerEvents =
+        malloc.allocate<ZMQPollerEvent>(sizeOf<ZMQPollerEvent>() * socketCount);
+    final availableEventCount =
+        _bindings.zmq_poller_wait_all(_poller, pollerEvents, socketCount, 0);
 
     if (availableEventCount > 0) {
       final frame = ZMQBindings.allocateMessage();
@@ -87,7 +89,9 @@ class ZContext {
 
         // Receive multiple message parts
         ZMessage zMessage = ZMessage();
-        while ((rc = _bindings.zmq_msg_recv(frame, socket._socket, ZMQ_DONTWAIT)) >= 0) {
+        while ((rc =
+                _bindings.zmq_msg_recv(frame, socket._socket, ZMQ_DONTWAIT)) >=
+            0) {
           // final size = _bindings.zmq_msg_size(msg);
           final data = _bindings.zmq_msg_data(frame).cast<Uint8>();
           final copyOfData = Uint8List.fromList(data.asTypedList(rc));
@@ -198,7 +202,7 @@ class ZContext {
     return hasCapability('draft');
   }
 
-  /// Create a new socket of the given [mode]
+  /// Create a new asynchronous socket of the given [mode]
   ZSocket createSocket(final SocketType mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = ZSocket(socket, this);
@@ -206,6 +210,9 @@ class ZContext {
     return apiSocket;
   }
 
+  /// Create a new synchronous socket of the given [mode]
+  ///
+  /// [mode] should be one of [ZMQ_REQ] or [ZMQ_REP]
   ZSyncSocket createdSynSocket(final SocketType mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = ZSyncSocket(socket, this);
@@ -215,7 +222,8 @@ class ZContext {
 
   /// Create a new monitored socket of the given [mode] and optional [event]s
   /// to monitor
-  MonitoredZSocket createMonitoredSocket(final SocketType mode, {final int event = ZMQ_EVENT_ALL}) {
+  MonitoredZSocket createMonitoredSocket(final SocketType mode,
+      {final int event = ZMQ_EVENT_ALL}) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = MonitoredZSocket(socket, this, event);
     _createdSockets.add(apiSocket);

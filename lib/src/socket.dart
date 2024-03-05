@@ -12,15 +12,19 @@ enum SocketType {
   sub,
 
   /// [ZMQ_REQ] = 3
+  /// Synchronous version of [ZMQ_DEALER]
   req,
 
   /// [ZMQ_REP] = 4
+  /// Synchronous version of [ZMQ_ROUTER]
   rep,
 
   /// [ZMQ_DEALER] = 5
+  /// Asynchronous version of [ZMQ_REQ]
   dealer,
 
   /// [ZMQ_ROUTER] = 6
+  /// Asynchronous version of [ZMQ_REP]
   router,
 
   /// [ZMQ_PULL] = 7
@@ -36,7 +40,43 @@ enum SocketType {
   xSub,
 
   /// [ZMQ_STREAM] = 11
-  stream
+  stream,
+
+  /// [ZMQ_SERVER] = 12
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  server,
+
+  /// [ZMQ_CLIENT] = 13
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  client,
+
+  /// [ZMQ_RADIO] = 14
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  radio,
+
+  /// [ZMQ_DISH] = 15
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  dish,
+
+  /// [ZMQ_CHANNEL] = 16
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  channel,
+
+  /// [ZMQ_PEER] = 17
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  peer,
+
+  /// [ZMQ_RAW] = 18
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  raw,
+
+  /// [ZMQ_SCATTER] = 19
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  scatter,
+
+  /// [ZMQ_GATHER] = 20
+  /// Note: This pattern is still in draft state and thus might not be supported by the zeromq library you’re using!
+  gather,
 }
 
 /// Base socket
@@ -55,66 +95,73 @@ class ZBaseSocket {
 
   /// Sends the given [data] payload over this socket.
   ///
-  /// The [more] parameter (defaults to false) signals that this is a multi-part
+  /// The [flags] argument is a combination of the flags defined below:
+  ///
+  /// [ZMQ_SNDMORE] signals that this is a multi-part
   /// message. ØMQ ensures atomic delivery of messages: peers shall receive
   /// either all message parts of a message or none at all.
   ///
-  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// [ZMQ_DONTWAIT] specifies that the operation
   /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
   /// that block when there are no available peers (or all peers have full
   /// high-water mark). If the message cannot be queued on the socket,
   /// the zmq_send() function shall fail with errno set to EAGAIN.
   ///
   /// Throws [ZeroMQException] on error
-  void send(final List<int> data, {final bool more = false, final bool nowait = false}) {
+  void send(final List<int> data, {final int flags = 0}) {
     _checkNotClosed();
     final ptr = malloc.allocate<Uint8>(data.length);
     ptr.asTypedList(data.length).setAll(0, data);
 
-    final sendParams = more ? ZMQ_SNDMORE : 0 | (nowait ? ZMQ_DONTWAIT : 0);
-    final result = _bindings.zmq_send(_socket, ptr.cast(), data.length, sendParams);
+    final result = _bindings.zmq_send(_socket, ptr.cast(), data.length, flags);
     malloc.free(ptr);
     _checkReturnCode(result, ignore: [EINTR]);
   }
 
   /// Sends the given [string] over this socket
   ///
-  /// The [more] parameter (defaults to false) signals that this is a multi-part
+  /// The [flags] argument is a combination of the flags defined below:
+  ///
+  /// [ZMQ_SNDMORE] signals that this is a multi-part
   /// message. ØMQ ensures atomic delivery of messages: peers shall receive
   /// either all message parts of a message or none at all.
   ///
-  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// [ZMQ_DONTWAIT] specifies that the operation
   /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
   /// that block when there are no available peers (or all peers have full
   /// high-water mark). If the message cannot be queued on the socket,
   /// the zmq_send() function shall fail with errno set to EAGAIN.
   ///
   /// Throws [ZeroMQException] on error
-  void sendString(final String string, {final bool more = false, final bool nowait = false}) {
+  void sendString(final String string, {final int flags = 0}) {
     send(
       string.codeUnits,
-      more: more,
-      nowait: nowait,
+      flags: flags,
     );
   }
 
   /// Sends the given [frame] over this socket
   ///
   /// This is a convenience function and is the same as calling
-  /// [send(frame.payload, more: frame.hasMore)]
+  /// [send(frame.payload, flags: frame.hasMore ? ZMQ_SNDMORE : 0)]
   ///
-  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// The [flags] argument is a combination of the flags defined below:
+  ///
+  /// [ZMQ_SNDMORE] signals that this is a multi-part
+  /// message. ØMQ ensures atomic delivery of messages: peers shall receive
+  /// either all message parts of a message or none at all.
+  ///
+  /// [ZMQ_DONTWAIT] specifies that the operation
   /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
   /// that block when there are no available peers (or all peers have full
   /// high-water mark). If the message cannot be queued on the socket,
   /// the zmq_send() function shall fail with errno set to EAGAIN.
   ///
   /// Throws [ZeroMQException] on error
-  void sendFrame(final ZFrame frame, {final bool nowait = false}) {
+  void sendFrame(final ZFrame frame, {final int flags = 0}) {
     send(
       frame.payload,
-      more: frame.hasMore,
-      nowait: nowait,
+      flags: flags | (frame.hasMore ? ZMQ_SNDMORE : 0),
     );
   }
 
@@ -123,20 +170,25 @@ class ZBaseSocket {
   /// This is a convenience function.
   /// Note that the individual [ZFrame.hasMore] are ignored
   ///
-  /// The [nowait] parameter (defaults to false) specifies that the operation
+  /// The [flags] argument is a combination of the flags defined below:
+  ///
+  /// [ZMQ_SNDMORE] signals that this is a multi-part
+  /// message. ØMQ ensures atomic delivery of messages: peers shall receive
+  /// either all message parts of a message or none at all.
+  ///
+  /// [ZMQ_DONTWAIT] specifies that the operation
   /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
   /// that block when there are no available peers (or all peers have full
   /// high-water mark). If the message cannot be queued on the socket,
   /// the zmq_send() function shall fail with errno set to EAGAIN.
   ///
   /// Throws [ZeroMQException] on error
-  void sendMessage(final ZMessage message, {final bool nowait = false}) {
+  void sendMessage(final ZMessage message, {final int flags = 0}) {
     final lastIndex = message.length - 1;
     for (int i = 0; i < message.length; ++i) {
       send(
         message.elementAt(i).payload,
-        more: i < lastIndex ? true : false,
-        nowait: nowait,
+        flags: flags | (i < lastIndex ? ZMQ_SNDMORE : 0),
       );
     }
   }
@@ -186,7 +238,8 @@ class ZBaseSocket {
   /// Throws [ZeroMQException] on error
   void setOption(final int option, final String value) {
     final ptr = value.toNativeUtf8();
-    final result = _bindings.zmq_setsockopt(_socket, option, ptr.cast<Uint8>(), ptr.length);
+    final result = _bindings.zmq_setsockopt(
+        _socket, option, ptr.cast<Uint8>(), ptr.length);
     malloc.free(ptr);
     _checkReturnCode(result, ignore: [EINTR]);
   }
