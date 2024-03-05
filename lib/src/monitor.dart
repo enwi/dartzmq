@@ -1,4 +1,4 @@
-part of dartzmq;
+part of 'zeromq.dart';
 
 /// Pair class containing two values [first] and [second] of types [L] and [R]
 class Pair<L, R> {

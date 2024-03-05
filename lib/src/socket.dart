@@ -1,4 +1,4 @@
-part of dartzmq;
+part of 'zeromq.dart';
 
 /// All types of sockets
 enum SocketType {

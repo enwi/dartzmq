@@ -1,4 +1,4 @@
-part of dartzmq;
+part of 'zeromq.dart';
 
 /// A ZFrame or 'frame' corresponds to one underlying zmq_msg_t in the libzmq code.
 /// When you read a frame from a socket, the [hasMore] member indicates
