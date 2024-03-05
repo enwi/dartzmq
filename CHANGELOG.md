@@ -1,3 +1,11 @@
+## 1.0.0-dev.17
+
+### Fix some code and documentation issues
+- Improve readme
+- Improve example
+- Fix some static analysis issues
+
+
 ## 1.0.0-dev.16
 
 ### Refactor sockets
