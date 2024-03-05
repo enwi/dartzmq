@@ -51,7 +51,15 @@ socket.connect("tcp://localhost:5566");
 Send message
 ```dart
 socket.send([1, 2, 3, 4, 5]);
+
 socket.sendString('My Message');
+
+socket.sendFrame(ZFrame([1, 2, 3, 4, 5]));
+
+var message = ZMessage();
+message.add(ZFrame([1, 2, 3, 4, 5]));
+message.add(ZFrame([6, 7, 8, 9, 10]));
+socket.sendMessage(message, flags: ZMQ_DONTWAIT);
 ```
 
 Receive `ZMessage`s
@@ -76,7 +84,9 @@ socket.payloads.listen((payload) {
 });
 ```
 
-> NOTE: There're only ASYNC methods above to use. If you're trying to use req/rep pattern, consider using `SocketType.dealer` instead. Therefore you need to add an empty ZFrame at the beginning of your ZMessage as identification.
+> NOTE: If you're trying to use req/rep pattern, consider using either a `ZSyncSocket` and call `socket.recv()` or a `ZSocket` of type `SocketType.dealer` instead.
+> For the latter you need to add an empty ZFrame at the beginning of your ZMessage as identification.
+
 Receive socket events
 ```dart
 final MonitoredZSocket socket = context.createMonitoredSocket(SocketType.req);

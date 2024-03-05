@@ -373,7 +373,19 @@ class ZSyncSocket extends ZBaseSocket {
   ZSyncSocket(super._socket, super._context);
 
   /// Receive a message from the socket, blocking.
-  /// [flags] can be ZMQ_DONTWAIT or ZMQ_SNDMORE.
+  ///
+  /// The [flags] argument is a combination of the flags defined below:
+  ///
+  /// [ZMQ_SNDMORE] signals that this is a multi-part
+  /// message. ØMQ ensures atomic delivery of messages: peers shall receive
+  /// either all message parts of a message or none at all.
+  ///
+  /// [ZMQ_DONTWAIT] specifies that the operation
+  /// should be performed in non-blocking mode. For socket types (DEALER, PUSH)
+  /// that block when there are no available peers (or all peers have full
+  /// high-water mark). If the message cannot be queued on the socket,
+  /// the zmq_send() function shall fail with errno set to EAGAIN.
+  ///
   ///
   /// Useful for REQ/REP sockets where you want to wait for a reply.
   ///
