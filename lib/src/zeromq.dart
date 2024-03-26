@@ -211,9 +211,7 @@ class ZContext {
   }
 
   /// Create a new synchronous socket of the given [mode]
-  ///
-  /// [mode] should be one of [ZMQ_REQ] or [ZMQ_REP]
-  ZSyncSocket createdSynSocket(final SocketType mode) {
+  ZSyncSocket createSyncSocket(final SocketType mode) {
     final socket = _bindings.zmq_socket(_context, mode.index);
     final apiSocket = ZSyncSocket(socket, this);
     _createdSockets.add(apiSocket);
