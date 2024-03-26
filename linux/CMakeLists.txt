@@ -17,6 +17,6 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 set(dartzmq_bundled_libraries
   # Defined in ../src/CMakeLists.txt.
   # This can be changed to accomodate different builds.
-  "${CMAKE_CURRENT_SOURCE_DIR}/../native/linux_x64/libzmq.so"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../native/linux_${CMAKE_SYSTEM_PROCESSOR}/libzmq.so"
   PARENT_SCOPE
 )
