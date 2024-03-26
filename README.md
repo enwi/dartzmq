@@ -40,7 +40,7 @@ final ZSocket socket = context.createSocket(SocketType.req);
 
 Create synchronous socket
 ```dart
-final ZSyncSocket socket = context.createSocket(SocketType.req);
+final ZSyncSocket socket = context.createSyncSocket(SocketType.req);
 ```
 
 Connect socket
