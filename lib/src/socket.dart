@@ -235,12 +235,29 @@ class ZBaseSocket {
 
   /// Set a socket [option] to a specific [value]
   ///
-  /// Throws [ZeroMQException] on error
-  void setOption(final int option, final String value) {
-    final ptr = value.toNativeUtf8();
-    final result = _bindings.zmq_setsockopt(
-        _socket, option, ptr.cast<Uint8>(), ptr.length);
-    malloc.free(ptr);
+  /// Throws [ZeroMQException] or [ArgumentError] on error
+  void setOption(final int option, final dynamic value) {
+    final int result;
+    if (value is String) {
+      final ptr = value.toNativeUtf8();
+      result = _bindings.zmq_setsockopt(
+          _socket, option, ptr.cast<Uint8>(), ptr.length);
+      malloc.free(ptr);
+    } else if (value is int) {
+      final ptr = malloc<Int32>();
+      ptr.value = value;
+      result = _bindings.zmq_setsockopt(
+          _socket, option, ptr.cast<Uint8>(), sizeOf<Int32>());
+      malloc.free(ptr);
+    } else if (value is bool) {
+      final ptr = malloc<Int32>();
+      ptr.value = value ? 1 : 0; // 1 for true, 0 for false
+      result = _bindings.zmq_setsockopt(
+          _socket, option, ptr.cast<Uint8>(), sizeOf<Int32>());
+      malloc.free(ptr);
+    } else {
+      throw ArgumentError('Unsupported type: ${value.runtimeType}');
+    }
     _checkReturnCode(result, ignore: [EINTR]);
   }
 
