@@ -130,7 +130,7 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 > Especially when using this on windows you need to make sure that `libzmq` is compiled using `MSVC-2019` if you are using `clang` it will not work ([more info](https://flutterforum.co/t/windows-desktop-flutter-ffi-and-loading-the-clang-library/3842))
 
 #### Android
-> Note that you need to use Android NDK version r21d. Newer versions are currently not supported (see https://github.com/zeromq/libzmq/issues/4276)
+> Note that you need to use Android NDK version r21d, 23 or 24. Newer versions might not work as expected (see https://github.com/zeromq/libzmq/issues/4276)
 
 1. Follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android) to build a `libzmq.so` for different platforms
    - If you need `curve` support make sure to set the environment variable `CURVE` either to `export CURVE=libsodium` or `export CURVE=tweetnacl` before running the build command
