@@ -13,7 +13,7 @@ Currently supported:
 - Bind (`bind(String address)`)
 - Connect (`connect(String address)`)
 - Curve (`setCurvePublicKey(String key)`, `setCurveSecretKey(String key)` and `setCurveServerKey(String key)`)
-- Socket options (`setOption(int option, String value)`)
+- Socket options (`setOption(int option, dynamic value)`)
 - Receiving multipart messages (`ZMessage`)
 - Topic subscription for `sub` sockets (`subscribe(String topic)` and `unsubscribe(String topic)`)
 - Monitoring socket states (`ZMonitor` and `MonitoredZSocket`)

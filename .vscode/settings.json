@@ -1,4 +1,14 @@
 {
     "cmake.configureOnOpen": false,
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cSpell.words": [
+        "DONTWAIT",
+        "EAGAIN",
+        "EINTR",
+        "GSSAPI",
+        "malloc",
+        "nullptr",
+        "POLLIN",
+        "tipc"
+    ]
 }
