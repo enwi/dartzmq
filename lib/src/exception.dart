@@ -1,4 +1,4 @@
-part of dartzmq;
+part of 'zeromq.dart';
 
 /// Custom Exception type for ZeroMQ specific exceptions
 class ZeroMQException implements Exception {

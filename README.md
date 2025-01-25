@@ -8,14 +8,16 @@ A simple dart zeromq implementation/wrapper around the libzmq C++ library
 ## Features
 Currently supported:
 - Creating sockets (`pair`,  `pub`,  `sub`,  `req`,  `rep`,  `dealer`,  `router`,  `pull`,  `push`,  `xPub`,  `xSub`,  `stream`)
-- Sending messages (of type `List<int>`)
+    - Depending on the zeromq library also `server`, `client`, `radio`, `dish`, `channel`, `peer`, `raw`, `scatter` and `gather`
+- Sending messages (of type `List<int>`, `String`, `ZFrame` or `ZMessage`)
 - Bind (`bind(String address)`)
 - Connect (`connect(String address)`)
 - Curve (`setCurvePublicKey(String key)`, `setCurveSecretKey(String key)` and `setCurveServerKey(String key)`)
-- Socket options (`setOption(int option, String value)`)
+- Socket options (`setOption(int option, dynamic value)`)
 - Receiving multipart messages (`ZMessage`)
-- Topic subscription for `sub` sockets (`subscribe(String topic)` & `unsubscribe(String topic)`)
-- Monitoring socket states (`ZMonitor` & `MonitoredZSocket`)
+- Topic subscription for `sub` sockets (`subscribe(String topic)` and `unsubscribe(String topic)`)
+- Monitoring socket states (`ZMonitor` and `MonitoredZSocket`)
+- Asynchronous (`ZSocket`) and Synchronous (`ZSyncSocket`) sockets
 
 
 ## Getting started
@@ -31,9 +33,14 @@ Create context
 final ZContext context = ZContext();
 ```
 
-Create socket
+Create asynchronous socket
 ```dart
 final ZSocket socket = context.createSocket(SocketType.req);
+```
+
+Create synchronous socket
+```dart
+final ZSyncSocket socket = context.createSyncSocket(SocketType.req);
 ```
 
 Connect socket
@@ -44,7 +51,15 @@ socket.connect("tcp://localhost:5566");
 Send message
 ```dart
 socket.send([1, 2, 3, 4, 5]);
+
 socket.sendString('My Message');
+
+socket.sendFrame(ZFrame([1, 2, 3, 4, 5]));
+
+var message = ZMessage();
+message.add(ZFrame([1, 2, 3, 4, 5]));
+message.add(ZFrame([6, 7, 8, 9, 10]));
+socket.sendMessage(message, flags: ZMQ_DONTWAIT);
 ```
 
 Receive `ZMessage`s
@@ -61,12 +76,16 @@ socket.frames.listen((frame) {
 });
 ```
 
+
 Receive payloads (`Uint8List`)
 ```dart
 socket.payloads.listen((payload) {
     // Do something with payload
 });
 ```
+
+> NOTE: If you're trying to use req/rep pattern, consider using either a `ZSyncSocket` and call `socket.recv()` or a `ZSocket` of type `SocketType.dealer` instead.
+> For the latter you need to add an empty ZFrame at the beginning of your ZMessage as identification.
 
 Receive socket events
 ```dart
@@ -111,7 +130,7 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 > Especially when using this on windows you need to make sure that `libzmq` is compiled using `MSVC-2019` if you are using `clang` it will not work ([more info](https://flutterforum.co/t/windows-desktop-flutter-ffi-and-loading-the-clang-library/3842))
 
 #### Android
-> Note that you need to use Android NDK version r21d. Newer versions are currently not supported (see https://github.com/zeromq/libzmq/issues/4276)
+> Note that you need to use Android NDK version r21d, 23 or 24. Newer versions might not work as expected (see https://github.com/zeromq/libzmq/issues/4276)
 
 1. Follow [these steps](https://github.com/zeromq/libzmq/tree/master/builds/android) to build a `libzmq.so` for different platforms
    - If you need `curve` support make sure to set the environment variable `CURVE` either to `export CURVE=libsodium` or `export CURVE=tweetnacl` before running the build command

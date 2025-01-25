@@ -1,6 +1,5 @@
 // ignore_for_file: non_constant_identifier_names
 
-import 'dart:developer';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -194,7 +193,7 @@ class ZMQBindings {
       library = _dlOpenPlatformSpecific(name);
       return true;
     } catch (err) {
-      log('Failed to load library $name:  ${err.toString()}', name: 'dartzmq');
+      // log('Failed to load library $name', error: err, name: 'dartzmq');
     }
     return false;
   }
@@ -204,7 +203,7 @@ class ZMQBindings {
         _loadLibrary('libzmq') ||
         _loadLibrary('libzmq-v142-mt-4_3_5');
     if (!loaded) {
-      throw Exception('Could not load any zeromq library');
+      throw Exception('Could not load zeromq library');
     }
   }
 

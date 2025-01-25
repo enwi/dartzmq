@@ -1,3 +1,20 @@
+## 1.0.0-dev.17
+
+### Fix some code and documentation issues
+- Improve readme
+- Improve example
+- Fix some static analysis issues
+
+
+## 1.0.0-dev.16
+
+### Refactor sockets
+- Refactor sockets to also have synchronized ones (`ZSyncSocket`)
+- Refactor send functions to use single `flags` parameter instead of multiple boolean parameters
+- Add new draft socket types `server`, `client`, `radio`, `dish`, `channel`, `peer`, `raw`, `scatter` and `gather`
+- Do not log error when library could not be loaded
+
+
 ## 1.0.0-dev.15
 
 ### Use `Dealer` instead of `Req` socket in example

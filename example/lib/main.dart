@@ -81,7 +81,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _sendMessage() {
     ++_presses;
-    _socket.send([_presses], nowait: true);
+    _socket.send([_presses], flags: ZMQ_DONTWAIT);
+    // NOTE: if you're using dealer/rep, an empty message for identification is required.
+    // _socket.send([], flags: ZMQ_DONTWAIT | ZMQ_SNDMORE);
+    // _socket.send([_presses], flags: ZMQ_DONTWAIT);
+    //
+    // or you can use ZFrame to build an message:
+    //
+    // var newMessage = ZMessage();
+    // newMessage.add(ZFrame(Uint8List(0)));
+    // newMessage.add(ZFrame(Uint8List.fromList([_presses])));
+    // _socket.sendMessage(newMessage, flags: ZMQ_DONTWAIT);
   }
 
   @override
