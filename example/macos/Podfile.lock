@@ -14,9 +14,9 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral
 
 SPEC CHECKSUMS:
-  dartzmq: 56b95df923ced4fb92fdb9fc1e9adf5944b45a69
+  dartzmq: b5a3e99cb053f8f60cc09cc656791f287dd5e612
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
 
 PODFILE CHECKSUM: 236401fc2c932af29a9fcf0e97baeeb2d750d367
 
-COCOAPODS: 1.12.1
+COCOAPODS: 1.15.2
