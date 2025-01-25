@@ -140,12 +140,16 @@ Place a shared library of `libzmq` next to your executable (for example place `l
 
 #### IOS
 > Note IOS arm64 architecture supported so it will run from iPhone5s to the latest Iphone, Ipads devices
-1. To make it Run on simulator you have to modify the podspec file in the ios directory of plugin
-2. modify this   - s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq.a -lstdc++" } 
-  - From
-  s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq.a -lstdc++" }
-  - To
-    s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq_simulator.a -lstdc++" }
+1. To make it Run on simulator you have to modify the `.podspec` file in the ios directory of plugin
+2. Modify the line 
+    - `s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/$(ARCHS)/libzmq.a -lstdc++" }`
+    - to for example `s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/libzmq_simulator.a -lstdc++" }`
+
+#### MacOS
+1. Before running any command set the correct target platform `export MACOSX_DEPLOYMENT_TARGET=11.0`
+2. Run configure with libsodium option `./configure --with-libsodium`
+3. Run make `make`
+4. Copy `libzmq.a` to the corresponding folder for `arm64` or `x86_64` under `macos/Classes/Frameworks`
 
 <!-- ## Additional information
 Tell users more about the package: where to find more information, how to 
