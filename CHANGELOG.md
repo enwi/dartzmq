@@ -1,3 +1,21 @@
+## 1.0.0-dev.18
+
+### Platform support and tooling
+- Add full macOS desktop support: provide plugin scaffolding, podspec, bundled `libzmq` binaries for `arm64`/`x86_64`, and register macOS as an FFI platform
+- Ship a prebuilt `libzmq` for `linux/aarch64` and tidy existing Linux artifacts
+- Update the Android plugin to AGP 8.9.2/Kotlin 2.1, declare a namespace, bump `compileSdk` to 35 and `minSdk` to 21, and clean up manifest/package naming
+- Refresh the example app build to the new Gradle plugin DSL, align it with the Flutter stable channel, and add a macOS Runner along with revised iOS simulator guidance
+
+### API and behavior
+- Rename the synchronous factory to `createSyncSocket` and document the updated usage
+- Allow `setOption` to accept `String`, `int`, or `bool` values instead of strings only
+- Ensure monitored sockets use unique inproc endpoints to prevent monitor address collisions
+- Retry `ZSyncSocket.recv` when `zmq_msg_recv` is interrupted (`EINTR`) so synchronous sockets stay reliable on Android
+
+### Documentation
+- Update the README to reflect the new `setOption` signature, macOS setup steps, and expanded Android NDK guidance
+- Adjust podspec metadata (author contact) and other project settings touched during the platform updates
+
 ## 1.0.0-dev.17
 
 ### Fix some code and documentation issues
