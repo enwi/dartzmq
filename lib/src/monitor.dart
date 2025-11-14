@@ -165,6 +165,15 @@ extension ZEventConversion on ZEvent {
 
 /// Monitors socket state
 class ZMonitor {
+  /// Helper for storing previous socket id
+  static int _nextEndpointId = 0;
+
+  /// Helper for retrieving the next free socket endpoint
+  static String _allocateEndpoint() {
+    final id = _nextEndpointId++;
+    return 'inproc://dartzmq-monitor-$id';
+  }
+
   /// Socket monitoring this socket
   late final ZSocket _monitor;
 
@@ -186,6 +195,10 @@ class ZMonitor {
   /// * [ZMQ_EVENT_CLOSE_FAILED]
   /// * [ZMQ_EVENT_DISCONNECTED]
   /// * [ZMQ_EVENT_MONITOR_STOPPED]
+  /// * [ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL]
+  /// * [ZMQ_EVENT_HANDSHAKE_SUCCEEDED]
+  /// * [ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL]
+  /// * [ZMQ_EVENT_HANDSHAKE_FAILED_AUTH]
   ///
   /// To monitor specific events:
   /// ```dart
@@ -203,12 +216,12 @@ class ZMonitor {
   ///  socket: socket,
   /// );
   /// ```
-  ZMonitor(
-      {required final ZContext context,
-      required final ZSocket socket,
-      final int event = ZMQ_EVENT_ALL}) {
-    final address = 'inproc://monitor${socket.hashCode}';
-
+  ZMonitor({
+    required final ZContext context,
+    required final ZSocket socket,
+    final int event = ZMQ_EVENT_ALL,
+  }) {
+    final address = _allocateEndpoint();
     final endpointPointer = address.toNativeUtf8();
     final code =
         _bindings.zmq_socket_monitor(socket._socket, endpointPointer, event);
