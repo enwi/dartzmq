@@ -420,6 +420,10 @@ class ZSyncSocket extends ZBaseSocket {
       ZMessage zMessage = ZMessage();
       while (true) {
         rc = _bindings.zmq_msg_recv(frame, _socket, flags);
+        if (rc < 0 && _bindings.zmq_errno() == EINTR) {
+          // Retry when the blocking call is interrupted by a signal.
+          continue;
+        }
         _checkReturnCode(rc);
         final data = _bindings.zmq_msg_data(frame).cast<Uint8>();
         final copyOfData = Uint8List.fromList(data.asTypedList(rc));
