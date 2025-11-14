@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'dartzmq'
-  s.version          = '1.0.0-dev.15'
+  s.version          = '1.0.0-dev.18'
   s.summary          = 'A simple dart zeromq implementation/wrapper around the libzmq C++ library'
   s.description      = <<-DESC
 A simple dart zeromq implementation/wrapper around the libzmq C++ library.
