@@ -34,6 +34,9 @@ class ZContext {
   /// Used for shutting down asynchronously
   Completer? _stopCompleter;
 
+  /// Polling interval for [_poll] function in [_timer] period
+  late final Duration _pollingInterval;
+
   /// Timer used for running [_poll] function
   Timer? _timer;
 
@@ -45,12 +48,15 @@ class ZContext {
   final Map<ZMQSocket, ZSocket> _listenedSockets = {};
 
   /// Create a new global ZContext
+  /// [pollingInterval] is the interval for the internal polling task that
+  /// receives messages from the native library.
   ///
   /// Note only one context should exist throughout your application
   /// and it should be closed if the app is disposed
-  ZContext() {
+  ZContext({Duration pollingInterval = const Duration(seconds: 1)}) {
     _context = _bindings.zmq_ctx_new();
     _poller = _bindings.zmq_poller_new();
+    _pollingInterval = pollingInterval;
     _startPolling();
   }
 
@@ -66,7 +72,7 @@ class ZContext {
   /// if there are actually listeners on sockets
   void _startPolling() {
     if (_timer == null && _listenedSockets.isNotEmpty) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _poll());
+      _timer = Timer.periodic(_pollingInterval, (timer) => _poll());
     }
   }
 
