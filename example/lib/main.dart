@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
-
 import 'package:dartzmq/dartzmq.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +10,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +25,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -35,15 +33,17 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final ZContext _context = ZContext();
-  late final MonitoredZSocket _socket;
+  // late final MonitoredZSocket _socket;
+  late final ZSocket _socket;
   String _receivedData = '';
   late StreamSubscription _subscription;
   int _presses = 0;
 
   @override
   void initState() {
-    _socket = _context.createMonitoredSocket(SocketType.dealer);
-    _socket.connect("tcp://localhost:5566");
+    _socket = _context.createSocket(SocketType.dealer);
+    _socket.connect("tcp://127.0.0.1:5566");
+    // _socket.connect("tcp://127.0.0.1:5566");
     // host ip address in android simulator is 10.0.2.2
     // _socket.connect("tcp://10.0.2.2:5566");
     // _socket.connect("tcp://192.168.2.34:5566");
@@ -81,12 +81,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _sendMessage() {
     ++_presses;
-    _socket.send([_presses], flags: ZMQ_DONTWAIT);
+    // _socket.sendString(_presses.toString(), flags: ZMQ_DONTWAIT);
     // NOTE: if you're using dealer/rep, an empty message for identification is required.
-    // _socket.send([], flags: ZMQ_DONTWAIT | ZMQ_SNDMORE);
-    // _socket.send([_presses], flags: ZMQ_DONTWAIT);
+    _socket.send([], flags: ZMQ_DONTWAIT | ZMQ_SNDMORE);
+    _socket.sendString(_presses.toString(), flags: ZMQ_DONTWAIT);
     //
-    // or you can use ZFrame to build an message:
+    // or you can use ZFrame to build a message:
     //
     // var newMessage = ZMessage();
     // newMessage.add(ZFrame(Uint8List(0)));
@@ -110,17 +110,17 @@ class _MyHomePageState extends State<MyHomePage> {
               color: Colors.blue,
               child: const Text('Send'),
             ),
-            StreamBuilder<SocketEvent>(
-              stream: _socket.events,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final event = snapshot.data!;
-                  log('Socket event: ${event.event}, value: ${event.value}');
-                  return Text('Event: ${event.event}, value: ${event.value}');
-                }
-                return const LinearProgressIndicator();
-              },
-            ),
+            // StreamBuilder<SocketEvent>(
+            //   stream: _socket.events,
+            //   builder: (context, snapshot) {
+            //     if (snapshot.hasData) {
+            //       final event = snapshot.data!;
+            //       log('Socket event: ${event.event}, value: ${event.value}');
+            //       return Text('Event: ${event.event}, value: ${event.value}');
+            //     }
+            //     return const LinearProgressIndicator();
+            //   },
+            // ),
             const Text('Received'),
             Text(_receivedData),
           ],

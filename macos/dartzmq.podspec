@@ -20,10 +20,13 @@ A simple dart zeromq implementation/wrapper around the libzmq C++ library.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'FlutterMacOS'
-  s.platform = :osx, '10.11'
+  s.platform = :osx, '15.0'
   s.swift_version = '5.0'
 
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
-  s.pod_target_xcconfig = { "OTHER_LDFLAGS" => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/$(ARCHS)/libzmq.a -lstdc++" }
+  s.pod_target_xcconfig = {
+    'DEFINES_MODULE' => 'YES',
+    'OTHER_LDFLAGS' => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/$(ARCHS)/libzmq.a -lstdc++",
+    'OTHER_LDFLAGS[arch=arm64]' => "$(inherited) -force_load $(PODS_TARGET_SRCROOT)/Frameworks/$(ARCHS)/libzmq.a -force_load $(PODS_TARGET_SRCROOT)/Frameworks/$(ARCHS)/libsodium.a -lstdc++"
+  }
 
 end

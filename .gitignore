@@ -27,6 +27,8 @@ migrate_working_dir/
 **/doc/api/
 .dart_tool/
 .packages
+.build/
+.swiftpm/
 build/
 example/ios/Flutter/flutter_export_environment.sh
 example/ios/Flutter/Generated.xcconfig
